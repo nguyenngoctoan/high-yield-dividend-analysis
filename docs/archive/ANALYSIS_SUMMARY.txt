@@ -1,0 +1,253 @@
+================================================================================
+DATABASE TABLE RENAMING ANALYSIS - SUMMARY REPORT
+High-Yield Dividend Analysis System
+================================================================================
+
+PROJECT SCOPE:
+- Rename core database tables to use "raw_" prefix
+- Distinguish raw data ingestion layer from processed/application data
+- Maintain data integrity and foreign key relationships
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+TABLES TO RENAME (8 Core Tables):
+1. stocks                    -> raw_stocks
+2. stock_prices              -> raw_stock_prices
+3. dividend_history          -> raw_dividend_history
+4. stock_splits              -> raw_stock_splits
+5. stock_prices_hourly       -> raw_stock_prices_hourly
+6. holdings_history          -> raw_holdings_history
+7. stocks_excluded           -> raw_stocks_excluded
+8. excluded_symbols          -> raw_excluded_symbols
+
+FILES AFFECTED: 104+ files
+- SQL/Migrations: 15 files
+- Python modules: 59 files
+- Shell scripts: 10 files
+- Documentation: 20+ files
+
+ESTIMATED EFFORT:
+- Critical changes: 2-3 hours
+- High priority: 3-4 hours
+- Medium priority: 3-4 hours
+- Documentation: 1-2 hours
+- Testing: 2-3 hours
+TOTAL: 10-15 hours
+
+================================================================================
+CRITICAL DEPENDENCIES
+================================================================================
+
+Foreign Key Relationships (Must update together):
+- raw_stock_splits -> raw_stocks (fk_splits_symbol)
+- raw_stock_prices_hourly -> raw_stocks (fk_hourly_symbol)
+
+Table-Specific Upsert Logic (supabase_helpers.py lines 417-432):
+- Conflict handling differs by table
+- Must update all table name checks
+
+Direct Table References (incremental_processor.py):
+- stock_prices (line 37)
+- dividend_history (line 69)
+
+================================================================================
+MIGRATION STRATEGY (8 PHASES)
+================================================================================
+
+Phase 1: Preparation
+  - Create database backup
+  - Document all constraints and indexes
+  - Set up development environment
+
+Phase 2: Database Migration
+  - Create migration file: migrations/007_rename_tables_raw_prefix.sql
+  - Use ALTER TABLE ... RENAME TO
+  - Verify all constraints and indexes
+
+Phase 3: Code Updates - CRITICAL
+  Priority 1: Core helpers (supabase_helpers.py)
+  Priority 2: Direct table refs (incremental_processor.py)
+  Priority 3: All migration files (*.sql)
+
+Phase 4: Code Updates - HIGH PRIORITY
+  Priority: Processors, data sources, critical scripts
+
+Phase 5: Code Updates - MEDIUM PRIORITY
+  Priority: Utility scripts, configuration files
+
+Phase 6: Code Updates - LOW PRIORITY
+  Priority: Archive scripts, tests, debug utilities
+
+Phase 7: Documentation
+  - Update markdown files with new table names
+  - Update example queries
+  - Update README and guides
+
+Phase 8: Testing & Deployment
+  - Test migration and code in development
+  - Run complete pipeline tests
+  - Deploy to production
+  - Monitor for errors
+
+================================================================================
+FILES OVERVIEW BY CATEGORY
+================================================================================
+
+CRITICAL (15-20 files - Update First):
+  1. supabase_helpers.py (40+ references)
+  2. incremental_processor.py (direct table refs)
+  3. All 9 migration SQL files
+  4. 4 core processor files
+  5. 2-3 shell scripts with raw SQL
+
+HIGH PRIORITY (15-20 files):
+  1. Database setup files (4)
+  2. Processor files (5)
+  3. Data source clients (3)
+  4. Core utility scripts (8-10)
+
+MEDIUM PRIORITY (20-30 files):
+  1. Additional utility scripts
+  2. Some archive scripts still in use
+  3. Important documentation
+  4. Configuration files
+
+LOW PRIORITY (50+ files):
+  1. Archive scripts (not currently used)
+  2. Test and debug files
+  3. Legacy documentation
+  4. Non-critical examples
+
+================================================================================
+DOCUMENT REFERENCES
+================================================================================
+
+For Complete Details, See:
+1. TABLE_RENAMING_ANALYSIS.md (701 lines)
+   - Comprehensive schema documentation
+   - All file references with line numbers
+   - Complete change patterns
+   - Implementation strategy with 8 phases
+
+2. TABLE_RENAMING_QUICK_REFERENCE.md
+   - Table mapping summary
+   - Search & replace patterns
+   - Critical code sections
+   - Priority file list
+
+3. FILES_TO_UPDATE_CHECKLIST.md
+   - File-by-file update checklist
+   - Organized by priority
+   - Reference counts per file
+   - Recommended update approach
+
+4. This file: ANALYSIS_SUMMARY.txt
+   - High-level overview
+   - Key findings
+   - Critical dependencies
+
+================================================================================
+CRITICAL PATTERNS TO FIND & REPLACE
+================================================================================
+
+Python Code:
+  .table('stocks')              -> .table('raw_stocks')
+  .table('stock_prices')        -> .table('raw_stock_prices')
+  .table('dividend_history')    -> .table('raw_dividend_history')
+  .table('stock_splits')        -> .table('raw_stock_splits')
+  .table('stock_prices_hourly') -> .table('raw_stock_prices_hourly')
+  .table('holdings_history')    -> .table('raw_holdings_history')
+  .table('stocks_excluded')     -> .table('raw_stocks_excluded')
+  
+  supabase_select('stocks',     -> supabase_select('raw_stocks',
+
+SQL/Shell:
+  FROM stocks                   -> FROM raw_stocks
+  ALTER TABLE stocks            -> ALTER TABLE raw_stocks
+  REFERENCES stocks             -> REFERENCES raw_stocks
+
+================================================================================
+CRITICAL CODE SECTIONS TO UPDATE
+================================================================================
+
+supabase_helpers.py (Lines 417-432):
+  Table-specific upsert conflict handling
+  MUST update all 5 table name checks:
+    - 'raw_stock_prices'
+    - 'raw_stock_prices_hourly'
+    - 'raw_dividend_history'
+    - 'raw_stocks'
+    - 'raw_stocks_excluded'
+
+incremental_processor.py (Lines 37, 69):
+  Direct table references in supabase_select calls:
+    - Line 37: supabase_select('raw_stock_prices', ...)
+    - Line 69: supabase_select('raw_dividend_history', ...)
+
+All Migration Files (9 files):
+  ALTER TABLE and REFERENCES statements must be updated
+
+================================================================================
+ROLLBACK PLAN
+================================================================================
+
+In case of issues:
+1. Stop all data ingestion scripts
+2. Restore database from backup
+3. Revert code changes from git
+4. Run reverse migration if database was already migrated
+5. Verify data integrity
+6. Address issues before re-attempting
+
+Keep available:
+- Database backup before migration
+- Reverse migration script
+- Previous code version in git
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+1. Use IDE Find & Replace for bulk changes
+   - Careful with patterns (stocks vs stocks_excluded)
+   - Test patterns before applying
+
+2. Version Control
+   - Create feature branch: refactor/rename-tables-raw-prefix
+   - Commit migrations separately
+   - Commit code changes by component
+
+3. Testing
+   - Test migration in development first
+   - Run complete pipeline tests
+   - Verify data integrity after migration
+
+4. Documentation
+   - Update all markdown files
+   - Keep commit messages clear
+   - Document any issues encountered
+
+5. Communication
+   - Notify stakeholders of changes
+   - Document timeline
+   - Provide rollback procedures
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Review all three analysis documents
+2. Create feature branch for refactoring
+3. Create migration file (007_rename_tables_raw_prefix.sql)
+4. Test migration in development database
+5. Update code in priority order (Critical -> High -> Medium -> Low)
+6. Run comprehensive tests
+7. Deploy to production with monitoring
+
+================================================================================
+Document Generated: 2025-11-02
+Codebase Analyzed: High-Yield Dividend Analysis System
+Total References Found: 200+ occurrences across 104+ files
+================================================================================

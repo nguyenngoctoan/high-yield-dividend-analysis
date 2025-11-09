@@ -1,0 +1,130 @@
+# Cursor AI Rules for High Yield Dividend Analysis Project
+
+## PROJECT ENVIRONMENT
+This project uses:
+- **Docker Container**: `ai-dividend-tracker` for the application environment
+- **Database**: Supabase (local instance on `http://127.0.0.1:54321`)
+- **Primary Script**: `update_stock.py` (hybrid stock data update system)
+
+## DATABASE PROTECTION RULES - SUPABASE
+
+### CRITICAL OPERATIONS - ALWAYS ASK FOR CONFIRMATION
+These operations require explicit user confirmation before execution:
+
+**High-Risk Supabase Database Operations:**
+- Database resets or drops (`DROP DATABASE`, `RESET DATABASE`)
+- Clearing ALL data from tables (`DELETE FROM table_name` without WHERE clause)
+- Dropping entire tables (`DROP TABLE stocks`, `DROP TABLE excluded_symbols`)
+- Truncating tables (`TRUNCATE TABLE stocks`, `TRUNCATE TABLE excluded_symbols`)
+- Operations that would delete significant amounts of data (>1000 records)
+- Supabase admin operations that affect schema or permissions
+- Operations using service role key for destructive actions
+
+**High-Risk Docker/Infrastructure Operations:**
+- Removing the `ai-dividend-tracker` Docker container
+- Deleting Docker volumes containing database data
+- Removing critical configuration files (.env, docker-compose.yml)
+- Operations that could affect the entire project structure
+
+### SAFE OPERATIONS - NO CONFIRMATION NEEDED
+These operations are safe and can be executed normally:
+
+**File Operations:**
+- Reading files and viewing data
+- Modifying individual Python scripts
+- Creating/editing log files
+- Deleting individual log files (`logfile.log`, `comprehensive_update.log`)
+
+**Database Operations (Supabase):**
+- SELECT queries for data viewing
+- INSERT operations for new stock data
+- UPDATE operations with proper WHERE clauses
+- DELETE operations targeting specific records (not bulk deletes)
+- Normal stock data updates via `update_stock.py`
+- Portfolio performance calculations
+
+**Docker Operations:**
+- Starting/stopping the `ai-dividend-tracker` container
+- Viewing container logs
+- Running scripts inside the container
+
+**Development Operations:**
+- Running stock update scripts with normal parameters
+- Testing API connections
+- Debugging individual symbols
+- Running portfolio calculations
+
+## CONFIRMATION PROTOCOL
+
+Only ask for confirmation for truly high-risk operations:
+
+```
+⚠️  WARNING: HIGH-RISK SUPABASE/DOCKER OPERATION DETECTED
+
+Operation: [specific operation being attempted]
+Target: [Supabase table/Docker container/etc.]
+Impact: [description of what will happen]
+Risk Level: HIGH/CRITICAL
+
+This operation could result in significant data loss or system disruption.
+Affected: [e.g., "All stock data in Supabase", "ai-dividend-tracker container"]
+
+Do you want to proceed? Type 'yes' to confirm or 'no' to cancel.
+```
+
+## PROJECT-SPECIFIC RULES
+
+### Primary Stock Data Management
+- Use `update_stock.py` (hybrid system) for all normal stock operations
+- Commands like `python update_stock.py --discover-symbols` are safe
+- Only ask for confirmation for operations that would delete ALL data from Supabase
+
+### Supabase Database Operations
+- Normal stock data INSERT/UPDATE operations are safe
+- Portfolio calculations and data queries are safe
+- Only ask for confirmation for operations affecting entire tables or >1000 records
+- Respect both anonymous key and service role key permissions
+
+### Docker Container Management
+- Starting/stopping `ai-dividend-tracker` container is safe
+- Viewing logs and running scripts inside container is safe
+- Only ask for confirmation for removing containers or volumes
+
+### Environment Files
+- Modifying `.env` for API keys is safe
+- Only ask for confirmation for operations that would delete `.env` or Docker configs
+
+## EXAMPLES
+
+### Operations that DO require confirmation:
+- "Reset the entire Supabase database"
+- "Clear all data from the stocks table"
+- "DROP TABLE stocks" or "DROP TABLE excluded_symbols"
+- "DELETE FROM stocks" (without WHERE clause)
+- "TRUNCATE TABLE stocks"
+- "Remove the ai-dividend-tracker Docker container"
+- "Delete Docker volumes with database data"
+- "Remove all files in the project directory"
+
+### Operations that DON'T require confirmation:
+- "python update_stock.py --discover-symbols"
+- "python update_stock.py --symbol AAPL"
+- "python portfolio_performance_calculator.py"
+- "UPDATE stocks SET price = 150.00 WHERE symbol = 'AAPL'"
+- "INSERT INTO stocks (symbol, price) VALUES ('MSFT', 300.00)"
+- "DELETE FROM stocks WHERE symbol = 'INVALID_SYMBOL'"
+- "SELECT * FROM stocks WHERE dividend_yield > 5"
+- "Delete logfile.log"
+- "Start the ai-dividend-tracker container"
+- "View Supabase database tables"
+- "Modify .env to add new API key"
+
+## FINAL REMINDER
+
+**Only ask for confirmation for operations that would:**
+- Delete significant amounts of data from Supabase (>1000 records or entire tables)
+- Remove Docker containers or volumes
+- Affect the entire system infrastructure
+- Use destructive SQL commands without proper WHERE clauses
+
+**Normal stock data operations, individual record modifications, and development tasks are safe and require no confirmation.**

@@ -1,0 +1,12 @@
+# Core dependencies for high-yield-dividend-analysis
+yfinance>=0.2.28
+supabase>=2.0.0
+pandas>=2.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+beautifulsoup4>=4.12.0
+selenium>=4.15.0
+webdriver-manager>=4.0.1
+psycopg2-binary>=2.9.9
+openpyxl>=3.1.2
+pytz>=2023.3
