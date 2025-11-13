@@ -39,7 +39,20 @@ def parse_date(date_str):
     # Clean the date string
     date_str = date_str.strip()
 
-    # Handle various date formats used in YieldMax press releases
+    # Try to parse "Month Day, Year" format (e.g., "November 12, 2025" or "October 16th, 2025")
+    # Handle ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
+    month_name_pattern = r'([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})'
+    month_match = re.search(month_name_pattern, date_str)
+    if month_match:
+        try:
+            month_name, day, year = month_match.groups()
+            month = parse_month_name_to_number(month_name)
+            if month:
+                return datetime(int(year), month, int(day)).strftime('%Y-%m-%d')
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Could not parse month-name date '{date_str}': {e}")
+
+    # Handle various numeric date formats used in YieldMax press releases
     # Check 4-digit years first to avoid 2025 being matched as 25 (2-digit)
     date_patterns = [
         r'(\d{1,2})/(\d{1,2})/(\d{4})',     # M/D/YYYY or MM/DD/YYYY
@@ -75,8 +88,173 @@ def parse_date(date_str):
     logger.warning(f"Could not parse date format: '{date_str}'")
     return None
 
+def extract_dates_from_article_text(soup):
+    """
+    Extract ex-date and payment date from article text (NEW FORMAT).
+    YieldMax's new format has dates in the text like:
+    'Ex. & Record Date: November 12, 2025  Payment Date: November 13, 2025'
+    """
+    try:
+        # Search for date patterns in paragraphs
+        paragraphs = soup.find_all('p')
+
+        ex_date = None
+        payment_date = None
+
+        for p in paragraphs:
+            text = p.get_text().strip()
+
+            # Look for "Ex. & Record Date: <date>"
+            ex_match = re.search(r'Ex\.?\s*&?\s*Record\s*Date:\s*([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})', text, re.IGNORECASE)
+            if ex_match:
+                date_str = ex_match.group(1)
+                ex_date = parse_date(date_str)
+                logger.info(f"Found ex-date in text: {date_str} -> {ex_date}")
+
+            # Look for "Payment Date: <date>" (including ordinal suffixes like "16th")
+            pay_match = re.search(r'Payment\s*Date:\s*([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})', text, re.IGNORECASE)
+            if pay_match:
+                date_str = pay_match.group(1)
+                payment_date = parse_date(date_str)
+                logger.info(f"Found payment date in text: {date_str} -> {payment_date}")
+
+            # If we found both dates, we're done
+            if ex_date and payment_date:
+                break
+
+        return ex_date, payment_date
+
+    except Exception as e:
+        logger.error(f"Error extracting dates from article text: {e}")
+        return None, None
+
+def parse_month_name_to_number(month_name):
+    """Convert month name to number (e.g., 'November' -> 11)"""
+    months = {
+        'january': 1, 'february': 2, 'march': 3, 'april': 4,
+        'may': 5, 'june': 6, 'july': 7, 'august': 8,
+        'september': 9, 'october': 10, 'november': 11, 'december': 12,
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    }
+    return months.get(month_name.lower())
+
+def extract_table_data_new_format(soup, ex_date, payment_date):
+    """
+    Extract dividend data from NEW FORMAT YieldMax articles.
+    New format has:
+    - Table columns: ETF Ticker | ETF Name | Distribution Frequency | Distribution per Share | ...
+    - Dates are NOT in the table, they're in the article text
+    """
+    dividend_data = []
+
+    try:
+        tables = soup.find_all('table')
+
+        for table in tables:
+            # Get headers
+            headers = table.find_all('th')
+            if not headers:
+                first_row = table.find_all('tr')
+                if first_row:
+                    headers = first_row[0].find_all('td')
+
+            header_texts = [h.get_text().strip().lower() for h in headers]
+
+            # Check if this looks like the new format table
+            has_new_format = (
+                any('etf ticker' in h or 'ticker' in h for h in header_texts) and
+                any('distribution per share' in h for h in header_texts) and
+                not any('ex-date' in h or 'payment date' in h for h in header_texts)  # No dates in table
+            )
+
+            if not has_new_format:
+                continue
+
+            logger.info("✅ Detected NEW FORMAT table")
+
+            # Map headers
+            header_mapping = {}
+            for i, cell in enumerate(headers):
+                header_text = cell.get_text().strip().replace('\n', ' ').lower()
+
+                if 'ticker' in header_text:
+                    header_mapping[i] = 'ticker'
+                elif 'name' in header_text and 'etf' in header_text:
+                    header_mapping[i] = 'name'
+                elif 'distribution per share' in header_text:
+                    header_mapping[i] = 'amount'
+                elif 'frequency' in header_text:
+                    header_mapping[i] = 'frequency'
+
+            logger.info(f"New format header mapping: {header_mapping}")
+
+            # Extract rows
+            rows = table.find_all('tr')
+            for row in rows[1:]:  # Skip header
+                cells = row.find_all('td')
+
+                if len(cells) < 2:
+                    continue
+
+                record = {}
+
+                for i, cell in enumerate(cells):
+                    cell_text = cell.get_text().strip()
+
+                    if i in header_mapping:
+                        field_name = header_mapping[i]
+
+                        if field_name == 'ticker':
+                            ticker = cell_text.replace('®', '').replace('™', '').replace('1', '').strip()
+                            if ticker and ticker != '-' and len(ticker) <= 10:
+                                record['ticker'] = ticker
+
+                        elif field_name == 'name':
+                            if cell_text and cell_text != '-':
+                                record['name'] = cell_text
+
+                        elif field_name == 'amount':
+                            amount_match = re.search(r'\$?(\d+\.?\d*)', cell_text.replace(',', ''))
+                            if amount_match:
+                                try:
+                                    amount = float(amount_match.group(1))
+                                    if amount > 0:
+                                        record['amount'] = amount
+                                except ValueError:
+                                    pass
+
+                        elif field_name == 'frequency':
+                            if cell_text and cell_text != '-':
+                                record['frequency'] = cell_text.lower()
+
+                # Add dates from article text
+                if ex_date:
+                    record['ex_date'] = ex_date
+                if payment_date:
+                    record['payment_date'] = payment_date
+
+                # Only save if we have minimum required fields
+                if ('ticker' in record and
+                    'amount' in record and
+                    'ex_date' in record and
+                    'payment_date' in record):
+                    dividend_data.append(record)
+                elif 'ticker' in record:
+                    logger.debug(f"Skipping {record.get('ticker')}: missing required fields")
+
+        logger.info(f"✅ Found {len(dividend_data)} dividend records (NEW FORMAT)")
+        return dividend_data
+
+    except Exception as e:
+        logger.error(f"❌ Error parsing new format: {e}")
+        return []
+
 def extract_table_data(url):
-    """Extract dividend table data from YieldMax press release URL using requests + BeautifulSoup."""
+    """
+    Extract dividend table data from YieldMax press release URL.
+    Supports both OLD and NEW formats automatically.
+    """
     logger.info(f"Loading URL: {url}")
 
     try:
@@ -86,6 +264,20 @@ def extract_table_data(url):
 
         # Parse with BeautifulSoup
         soup = BeautifulSoup(response.content, 'html.parser')
+
+        # FIRST: Try NEW FORMAT (dates in text, simpler table)
+        ex_date, payment_date = extract_dates_from_article_text(soup)
+
+        if ex_date and payment_date:
+            logger.info(f"📅 Detected NEW FORMAT - dates found in article text")
+            logger.info(f"   Ex-date: {ex_date}, Payment date: {payment_date}")
+            dividend_data = extract_table_data_new_format(soup, ex_date, payment_date)
+            if dividend_data:
+                return dividend_data
+            logger.warning("New format detected but no data extracted, falling back to old format...")
+
+        # SECOND: Try OLD FORMAT (dates in table)
+        logger.info("📅 Trying OLD FORMAT (dates in table)")
 
         # Find tables that contain dividend data
         tables = soup.find_all('table')
@@ -215,8 +407,8 @@ def extract_table_data(url):
         logger.error(f"❌ Error extracting table data: {e}")
         return []
 
-def save_to_dividend_calendar(dividend_data):
-    """Save dividend data to the dividend_payments table using Supabase."""
+def save_to_dividend_calendar(dividend_data, source_url=None):
+    """Save dividend data to the raw_dividends_yieldmax table using Supabase."""
     if not dividend_data:
         return 0
 
@@ -231,11 +423,12 @@ def save_to_dividend_calendar(dividend_data):
                 'amount_per_share': float(record['amount']),
                 'amount': float(record['amount']),  # Will be multiplied by shares_owned later
                 'payment_date': str(record['payment_date']) if record.get('payment_date') else None,
-                'frequency': 'monthly'  # Default for YieldMax, could be extracted from article
+                'frequency': 'monthly',  # Default for YieldMax, could be extracted from article
+                'source_url': source_url  # Add the source URL
             }
 
             # Upsert will handle both insert and update cases
-            result = supabase_upsert('dividend_payments', dividend_record)
+            result = supabase_upsert('raw_dividends_yieldmax', dividend_record)
 
             if result:
                 logger.info(f"Saved dividend record for {record['ticker']} on {record['ex_date']}: ${record['amount']}")
@@ -278,7 +471,7 @@ def main():
             # Save to database
             print(f"💾 Saving to database...")
             saved_count = save_to_dividend_calendar(dividend_data)
-            print(f"✅ Successfully saved {saved_count} records to dividend_payments table")
+            print(f"✅ Successfully saved {saved_count} records to raw_dividends_yieldmax table")
 
         else:
             print("❌ No dividend data found in the article")

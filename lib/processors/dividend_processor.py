@@ -321,7 +321,7 @@ class DividendProcessor:
 
             # Store in dividend_calendar table
             result = supabase_batch_upsert(
-                'dividend_calendar',
+                Config.DATABASE.TABLE_DIVIDEND_CALENDAR,
                 future_divs['data'],
                 batch_size=Config.DATABASE.UPSERT_BATCH_SIZE
             )

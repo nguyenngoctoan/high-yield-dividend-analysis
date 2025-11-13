@@ -1,0 +1,8 @@
+{
+  "/pricing/page": "app/pricing/page.js",
+  "/api-reference/page": "app/api-reference/page.js",
+  "/api-keys/page": "app/api-keys/page.js",
+  "/api/page": "app/api/page.js",
+  "/api/stocks/page": "app/api/stocks/page.js",
+  "/api/dividends/page": "app/api/dividends/page.js"
+}

@@ -27,6 +27,7 @@ class AlphaVantageClient(DataSourceClient):
     - Historical price data with adjusted close
     - Dividend data from daily adjusted series
     - Symbol listing (LISTING_STATUS endpoint)
+    - Options chain data with IV and Greeks (Premium only)
     - NASDAQ official vendor - fast updates
     """
 
@@ -345,6 +346,244 @@ class AlphaVantageClient(DataSourceClient):
             logger.warning("[Alpha Vantage] API failed - returning empty list")
 
         return symbols
+
+    def fetch_options_chain(self, symbol: str,
+                           include_greeks: bool = True,
+                           contract: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Fetch real-time options chain with IV and Greeks (Premium only).
+
+        Args:
+            symbol: Stock/ETF symbol
+            include_greeks: Include implied volatility and Greeks (default: True)
+            contract: Optional specific contract ID
+
+        Returns:
+            Dictionary with options chain data:
+            {
+                'source': 'Alpha Vantage',
+                'symbol': symbol,
+                'data': [list of option contracts],
+                'count': number of contracts
+            }
+        """
+        if not self.is_available():
+            return None
+
+        try:
+            params = {
+                'function': 'REALTIME_OPTIONS',
+                'symbol': symbol,
+                'apikey': self.api_key
+            }
+
+            if include_greeks:
+                params['require_greeks'] = 'true'
+
+            if contract:
+                params['contract'] = contract
+
+            logger.debug(
+                f"[Alpha Vantage] Fetching options chain for {symbol} "
+                f"(greeks: {include_greeks})"
+            )
+
+            with self.rate_limiter.limit():
+                response = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
+
+                if response.status_code == 200:
+                    data = response.json()
+
+                    # Check for errors
+                    if 'Error Message' in data:
+                        logger.error(f"[Alpha Vantage] Error: {data['Error Message']}")
+                        return None
+                    elif 'Note' in data:
+                        logger.warning(f"[Alpha Vantage] Rate limited: {data['Note']}")
+                        return None
+                    elif 'Information' in data:
+                        logger.warning(f"[Alpha Vantage] Info: {data['Information']}")
+                        return None
+
+                    # Extract options data
+                    # Alpha Vantage returns data under 'data' key with expiration dates
+                    if 'data' in data and isinstance(data['data'], list):
+                        options_data = data['data']
+
+                        logger.info(
+                            f"[Alpha Vantage] Found {len(options_data)} option contracts for {symbol}"
+                        )
+
+                        return {
+                            'source': 'Alpha Vantage',
+                            'symbol': symbol,
+                            'data': options_data,
+                            'count': len(options_data)
+                        }
+                    else:
+                        logger.debug(
+                            f"[Alpha Vantage] No options data found for {symbol}. "
+                            f"Response keys: {list(data.keys())}"
+                        )
+
+        except Exception as e:
+            logger.error(f"[Alpha Vantage] Options chain error for {symbol}: {e}")
+
+        return None
+
+    def fetch_historical_options(self, symbol: str,
+                                date_str: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Fetch historical options chain for a specific date.
+
+        Args:
+            symbol: Stock/ETF symbol
+            date_str: Date in YYYY-MM-DD format (defaults to previous trading day)
+
+        Returns:
+            Dictionary with historical options data
+        """
+        if not self.is_available():
+            return None
+
+        try:
+            params = {
+                'function': 'HISTORICAL_OPTIONS',
+                'symbol': symbol,
+                'apikey': self.api_key
+            }
+
+            if date_str:
+                params['date'] = date_str
+
+            logger.debug(
+                f"[Alpha Vantage] Fetching historical options for {symbol} "
+                f"(date: {date_str or 'latest'})"
+            )
+
+            with self.rate_limiter.limit():
+                response = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
+
+                if response.status_code == 200:
+                    data = response.json()
+
+                    # Check for errors
+                    if 'Error Message' in data:
+                        logger.error(f"[Alpha Vantage] Error: {data['Error Message']}")
+                        return None
+                    elif 'Note' in data:
+                        logger.warning(f"[Alpha Vantage] Rate limited: {data['Note']}")
+                        return None
+
+                    # Extract options data
+                    if 'data' in data and isinstance(data['data'], list):
+                        options_data = data['data']
+
+                        logger.info(
+                            f"[Alpha Vantage] Found {len(options_data)} historical option "
+                            f"contracts for {symbol}"
+                        )
+
+                        return {
+                            'source': 'Alpha Vantage',
+                            'symbol': symbol,
+                            'date': date_str,
+                            'data': options_data,
+                            'count': len(options_data)
+                        }
+
+        except Exception as e:
+            logger.error(
+                f"[Alpha Vantage] Historical options error for {symbol}: {e}"
+            )
+
+        return None
+
+    def get_implied_volatility(self, symbol: str,
+                              contract_type: str = 'both',
+                              closest_to_money: bool = True) -> Optional[Dict[str, Any]]:
+        """
+        Get implied volatility for a symbol from options chain.
+
+        Args:
+            symbol: Stock/ETF symbol
+            contract_type: 'call', 'put', or 'both'
+            closest_to_money: Return ATM options only (default: True)
+
+        Returns:
+            Dictionary with IV data:
+            {
+                'source': 'Alpha Vantage',
+                'symbol': symbol,
+                'iv': average IV value,
+                'call_iv': call IV (if available),
+                'put_iv': put IV (if available),
+                'contracts_analyzed': number of contracts
+            }
+        """
+        if not self.is_available():
+            return None
+
+        try:
+            # Fetch options chain with Greeks
+            options_data = self.fetch_options_chain(symbol, include_greeks=True)
+
+            if not options_data or not options_data.get('data'):
+                logger.debug(f"[Alpha Vantage] No options data for IV calculation: {symbol}")
+                return None
+
+            contracts = options_data['data']
+
+            # Extract IV from contracts
+            call_ivs = []
+            put_ivs = []
+
+            for contract in contracts:
+                try:
+                    contract_type_str = contract.get('type', '').lower()
+                    iv = contract.get('implied_volatility')
+
+                    if iv is not None and float(iv) > 0:
+                        if contract_type_str == 'call':
+                            call_ivs.append(float(iv))
+                        elif contract_type_str == 'put':
+                            put_ivs.append(float(iv))
+                except (ValueError, TypeError, KeyError):
+                    continue
+
+            if not call_ivs and not put_ivs:
+                logger.debug(f"[Alpha Vantage] No valid IV values found for {symbol}")
+                return None
+
+            result = {
+                'source': 'Alpha Vantage',
+                'symbol': symbol,
+                'contracts_analyzed': len(call_ivs) + len(put_ivs)
+            }
+
+            # Calculate averages
+            if contract_type in ['call', 'both'] and call_ivs:
+                result['call_iv'] = sum(call_ivs) / len(call_ivs)
+
+            if contract_type in ['put', 'both'] and put_ivs:
+                result['put_iv'] = sum(put_ivs) / len(put_ivs)
+
+            # Overall IV (average of calls and puts)
+            all_ivs = call_ivs + put_ivs
+            if all_ivs:
+                result['iv'] = sum(all_ivs) / len(all_ivs)
+
+            logger.info(
+                f"[Alpha Vantage] Calculated IV for {symbol}: {result.get('iv', 0):.4f} "
+                f"(from {result['contracts_analyzed']} contracts)"
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[Alpha Vantage] IV calculation error for {symbol}: {e}")
+
+        return None
 
 
 # Export Alpha Vantage client

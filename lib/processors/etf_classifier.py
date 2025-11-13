@@ -304,6 +304,10 @@ class ETFClassifier:
         # Filter for likely ETFs
         etf_records = []
         for record in unclassified:
+            # Check for None record or missing name
+            if not record or not record.get('name'):
+                continue
+
             name = record.get('name', '').lower()
             # Check if it looks like an ETF
             if 'etf' in name or 'fund' in name or 'trust' in name:

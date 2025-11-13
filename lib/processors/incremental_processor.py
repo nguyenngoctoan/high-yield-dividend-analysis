@@ -141,6 +141,133 @@ class IncrementalProcessor:
             logger.debug(f"✅ Data is fresh ({days_stale} days old, max: {max_staleness_days})")
             return False
 
+    @staticmethod
+    def get_bulk_latest_dates(table: str, date_column: str = 'date') -> dict:
+        """
+        Bulk fetch latest dates for all symbols in a single query.
+        This replaces individual queries for each symbol, dramatically improving performance.
+
+        Args:
+            table: Table name ('raw_stock_prices' or 'raw_dividends')
+            date_column: Date column name ('date' for prices, 'ex_date' for dividends)
+
+        Returns:
+            Dictionary mapping symbol -> latest date
+        """
+        try:
+            from supabase_helpers import get_supabase_client
+            supabase = get_supabase_client()
+
+            logger.info(f"📊 Bulk fetching latest {date_column}s from {table}...")
+
+            # Use RPC function for efficient bulk fetching
+            # This single query replaces tens of thousands of individual queries
+            result = supabase.rpc(
+                'get_latest_dates_by_symbol',
+                {'table_name': table, 'date_col': date_column}
+            ).execute()
+
+            if result.data:
+                # Convert to dict for fast lookups
+                latest_dates = {}
+                for row in result.data:
+                    try:
+                        symbol = row['symbol']
+                        date_str = row['latest_date']
+                        latest_dates[symbol] = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    except Exception as e:
+                        logger.debug(f"⚠️  Error parsing date for {row.get('symbol')}: {e}")
+                        continue
+
+                logger.info(f"✅ Fetched latest dates for {len(latest_dates):,} symbols in single query")
+                return latest_dates
+            else:
+                logger.info("📊 No existing data found in {table}")
+                return {}
+
+        except Exception as e:
+            # Fallback to empty dict if RPC function doesn't exist
+            logger.warning(f"⚠️  Bulk fetch failed (falling back to individual queries): {e}")
+            logger.info("💡 To enable bulk fetching, run: migrations/create_bulk_latest_dates_function.sql")
+            return {}
+
+    @staticmethod
+    def filter_stale_symbols(symbols: list, max_staleness_hours: int = 24) -> tuple:
+        """
+        Filter symbols to only those that need updating based on staleness.
+        Checks updated_at timestamp in raw_stocks table.
+
+        Args:
+            symbols: List of symbols to check
+            max_staleness_hours: Maximum hours before symbol needs update (default: 24)
+
+        Returns:
+            Tuple of (stale_symbols, fresh_symbols)
+        """
+        try:
+            from supabase_helpers import get_supabase_client
+            supabase = get_supabase_client()
+
+            # Calculate staleness cutoff
+            cutoff = datetime.now() - timedelta(hours=max_staleness_hours)
+            cutoff_iso = cutoff.isoformat()
+
+            logger.info(f"📊 Checking staleness for {len(symbols):,} symbols (cutoff: {max_staleness_hours}h)...")
+
+            # Batch query to check updated_at timestamps
+            # Query all symbols at once for efficiency
+            result = supabase.table('raw_stocks') \
+                .select('symbol, updated_at') \
+                .in_('symbol', symbols) \
+                .execute()
+
+            if not result.data:
+                logger.info("📊 No symbols found in database, all need updating")
+                return symbols, []
+
+            # Categorize symbols based on staleness
+            stale_symbols = []
+            fresh_symbols = []
+
+            # Create lookup dict for fast access
+            updated_at_map = {row['symbol']: row.get('updated_at') for row in result.data}
+
+            for symbol in symbols:
+                updated_at_str = updated_at_map.get(symbol)
+
+                if not updated_at_str:
+                    # Symbol not in database or no updated_at
+                    stale_symbols.append(symbol)
+                else:
+                    try:
+                        # Parse ISO timestamp
+                        updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
+                        # Remove timezone for comparison
+                        updated_at = updated_at.replace(tzinfo=None)
+
+                        if updated_at < cutoff:
+                            stale_symbols.append(symbol)
+                        else:
+                            fresh_symbols.append(symbol)
+                    except Exception as e:
+                        logger.debug(f"⚠️  Error parsing updated_at for {symbol}: {e}")
+                        stale_symbols.append(symbol)  # Default to stale if parsing fails
+
+            logger.info(
+                f"✅ Staleness check complete: {len(stale_symbols):,} stale (need update), "
+                f"{len(fresh_symbols):,} fresh (skip)"
+            )
+
+            if fresh_symbols:
+                logger.info(f"⏭️  Skipping {len(fresh_symbols):,} recently updated symbols (saving ~{len(fresh_symbols) * 2}min)")
+
+            return stale_symbols, fresh_symbols
+
+        except Exception as e:
+            logger.warning(f"⚠️  Staleness check failed: {e}")
+            logger.info("📊 Proceeding with all symbols (no filtering)")
+            return symbols, []
+
 
 # Export main class
 __all__ = ['IncrementalProcessor']

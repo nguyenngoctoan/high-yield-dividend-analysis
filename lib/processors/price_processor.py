@@ -51,6 +51,36 @@ class PriceProcessor:
         self.av_client = av_client or AlphaVantageClient()
 
         self.stats = ProcessingStats()
+        self.excluded_symbols = set()  # Track auto-excluded symbols in this session
+
+    def _auto_exclude_symbol(self, symbol: str, reason: str):
+        """
+        Automatically add symbol to exclusion list.
+
+        Args:
+            symbol: Symbol to exclude
+            reason: Reason for exclusion
+        """
+        # Avoid duplicate exclusions in same session
+        if symbol in self.excluded_symbols:
+            return
+
+        try:
+            from supabase_helpers import supabase_insert
+
+            exclusion_record = {
+                'symbol': symbol,
+                'reason': reason,
+                'validation_attempts': 1,
+                'auto_excluded': True
+            }
+
+            supabase_insert('raw_excluded_symbols', [exclusion_record], batch_size=1)
+            self.excluded_symbols.add(symbol)
+            logger.info(f"🚫 {symbol}: Auto-excluded - {reason}")
+
+        except Exception as e:
+            logger.warning(f"⚠️  {symbol}: Could not auto-exclude - {e}")
 
     def fetch_prices(self, symbol: str,
                     from_date: Optional[date] = None,
@@ -142,7 +172,11 @@ class PriceProcessor:
             price_data = self.fetch_prices(symbol, from_date, use_hybrid)
 
             if not price_data or not price_data.get('data'):
-                logger.debug(f"❌ {symbol}: No price data available")
+                logger.debug(f"❌ {symbol}: No price data available from any source")
+
+                # Auto-exclude symbols with no price data after trying all sources
+                self._auto_exclude_symbol(symbol, 'No price data from any source (FMP, Alpha Vantage, Yahoo)')
+
                 self.stats.failed += 1
                 return False
 
@@ -213,7 +247,8 @@ class PriceProcessor:
     def process_batch(self, symbols: List[str],
                      from_date: Optional[date] = None,
                      use_hybrid: bool = True,
-                     max_workers: int = None) -> Dict[str, bool]:
+                     max_workers: int = None,
+                     skip_excluded: bool = True) -> Dict[str, bool]:
         """
         Process prices for multiple symbols in parallel.
 
@@ -222,12 +257,28 @@ class PriceProcessor:
             from_date: Optional start date
             use_hybrid: Enable hybrid fallback
             max_workers: Maximum parallel workers (default: FMP concurrent requests)
+            skip_excluded: Skip symbols already in exclusion list (default: True)
 
         Returns:
             Dictionary mapping symbol -> success status
         """
         if max_workers is None:
             max_workers = Config.API.FMP_CONCURRENT_REQUESTS
+
+        # Filter out already-excluded symbols to save API calls
+        original_count = len(symbols)
+        if skip_excluded:
+            from supabase_helpers import supabase_select
+            try:
+                excluded_records = supabase_select('raw_excluded_symbols', 'symbol', limit=None)
+                if excluded_records:
+                    excluded_set = {r['symbol'] for r in excluded_records}
+                    symbols = [s for s in symbols if s not in excluded_set]
+                    skipped = original_count - len(symbols)
+                    if skipped > 0:
+                        logger.info(f"⏭️  Skipping {skipped} already-excluded symbols (saves ~{skipped * 2}s)")
+            except Exception as e:
+                logger.debug(f"⚠️  Could not check excluded symbols: {e}")
 
         self.stats.start()
         logger.info(f"📊 Processing prices for {len(symbols)} symbols with {max_workers} workers")

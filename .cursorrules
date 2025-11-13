@@ -8,69 +8,110 @@ This project uses:
 
 ## DATABASE PROTECTION RULES - SUPABASE
 
-### CRITICAL OPERATIONS - ALWAYS ASK FOR CONFIRMATION
-These operations require explicit user confirmation before execution:
+### 🔴 CRITICAL: ABSOLUTE DATABASE SAFETY PROTOCOL 🔴
 
-**High-Risk Supabase Database Operations:**
-- Database resets or drops (`DROP DATABASE`, `RESET DATABASE`)
-- Clearing ALL data from tables (`DELETE FROM table_name` without WHERE clause)
-- Dropping entire tables (`DROP TABLE stocks`, `DROP TABLE excluded_symbols`)
-- Truncating tables (`TRUNCATE TABLE stocks`, `TRUNCATE TABLE excluded_symbols`)
-- Operations that would delete significant amounts of data (>1000 records)
-- Supabase admin operations that affect schema or permissions
-- Operations using service role key for destructive actions
+**NEVER EXECUTE WITHOUT EXPLICIT USER CONFIRMATION:**
+- **NEVER** run database reset commands or any destructive operations
+- **NEVER** run `DROP TABLE` or `DROP DATABASE` commands
+- **NEVER** run `TRUNCATE TABLE` commands
+- **NEVER** run `DELETE` without WHERE clause
+- **NEVER** delete or modify existing data without explicit user permission
+- **NEVER** run operations that could cause ANY data loss
+- **ALWAYS** ask for explicit confirmation before ANY potentially destructive database operations
+- **ALWAYS** backup data before making any structural changes
 
-**High-Risk Docker/Infrastructure Operations:**
-- Removing the `ai-dividend-tracker` Docker container
-- Deleting Docker volumes containing database data
-- Removing critical configuration files (.env, docker-compose.yml)
-- Operations that could affect the entire project structure
+### PROHIBITED OPERATIONS - REQUIRE USER CONFIRMATION
+**Absolutely Prohibited Without Explicit Confirmation:**
+- ❌ `DROP TABLE` (any table)
+- ❌ `DROP DATABASE`
+- ❌ `TRUNCATE TABLE` (any table)
+- ❌ `DELETE FROM table_name` (without WHERE clause)
+- ❌ Database reset commands
+- ❌ **`npx supabase db reset`** - ABSOLUTELY FORBIDDEN (drops all tables and data)
+- ❌ **`supabase db reset`** - ABSOLUTELY FORBIDDEN (drops all tables and data)
+- ❌ **`npx supabase db push --force`** - ABSOLUTELY FORBIDDEN (can overwrite schema)
+- ❌ **`npx supabase db reset --linked`** - ABSOLUTELY FORBIDDEN
+- ❌ **`npx supabase db reset --db-url`** - ABSOLUTELY FORBIDDEN
+- ❌ Any command that could cause data loss (>0 records)
+- ❌ Bulk delete operations (even with WHERE clause if >100 records)
+- ❌ Altering table structure that could drop columns
+- ❌ Supabase admin operations that affect schema or permissions
+- ❌ Operations using service role key for destructive actions
 
-### SAFE OPERATIONS - NO CONFIRMATION NEEDED
-These operations are safe and can be executed normally:
+**Infrastructure Operations Requiring Confirmation:**
+- ❌ Removing the `ai-dividend-tracker` Docker container
+- ❌ Deleting Docker volumes containing database data
+- ❌ Removing critical configuration files (.env, docker-compose.yml)
+- ❌ Operations that could affect the entire project structure
 
-**File Operations:**
-- Reading files and viewing data
-- Modifying individual Python scripts
-- Creating/editing log files
-- Deleting individual log files (`logfile.log`, `comprehensive_update.log`)
+### SAFE OPERATIONS - ALLOWED WITHOUT CONFIRMATION
+**✅ Safe Database Operations:**
+- ✅ `SELECT` queries (read-only)
+- ✅ `CREATE TABLE IF NOT EXISTS` (new tables only)
+- ✅ `ALTER TABLE ADD COLUMN IF NOT EXISTS` (adding columns only - NEVER drop columns)
+- ✅ `CREATE INDEX IF NOT EXISTS`
+- ✅ `INSERT INTO` (new data only)
+- ✅ `UPDATE` with specific WHERE clauses (targeting ≤10 records)
+- ✅ `DELETE` with specific WHERE clauses (targeting ≤10 records)
 
-**Database Operations (Supabase):**
-- SELECT queries for data viewing
-- INSERT operations for new stock data
-- UPDATE operations with proper WHERE clauses
-- DELETE operations targeting specific records (not bulk deletes)
-- Normal stock data updates via `update_stock.py`
-- Portfolio performance calculations
+### 🔧 SCHEMA CHANGES - CORRECT APPROACH
+**When adding new columns or making schema changes:**
+1. ✅ **ALWAYS use ALTER TABLE ADD COLUMN** - this preserves existing data
+2. ✅ Use `IF NOT EXISTS` to make operations idempotent
+3. ✅ Run changes directly via psql or migration files
+4. ❌ **NEVER use `supabase db reset`** to apply schema changes
+5. ❌ **NEVER drop and recreate tables** to add columns
+6. Example: `ALTER TABLE raw_stocks ADD COLUMN IF NOT EXISTS new_col TEXT;`
 
-**Docker Operations:**
-- Starting/stopping the `ai-dividend-tracker` container
-- Viewing container logs
-- Running scripts inside the container
+**✅ Safe File Operations:**
+- ✅ Reading files and viewing data
+- ✅ Modifying individual Python scripts
+- ✅ Creating/editing log files
+- ✅ Deleting individual log files (`logfile.log`, `comprehensive_update.log`)
 
-**Development Operations:**
-- Running stock update scripts with normal parameters
-- Testing API connections
-- Debugging individual symbols
-- Running portfolio calculations
+**✅ Safe Docker Operations:**
+- ✅ Starting/stopping the `ai-dividend-tracker` container
+- ✅ Viewing container logs
+- ✅ Running scripts inside the container
+
+**✅ Safe Development Operations:**
+- ✅ Running stock update scripts with normal parameters
+- ✅ Testing API connections
+- ✅ Debugging individual symbols
+- ✅ Running portfolio calculations
 
 ## CONFIRMATION PROTOCOL
 
-Only ask for confirmation for truly high-risk operations:
+**MANDATORY CONFIRMATION FORMAT:**
+
+Before executing ANY destructive operation, you MUST:
+1. ⚠️  Stop and explain what the command will do
+2. ⚠️  Ask for explicit user confirmation
+3. ⚠️  Wait for user approval before proceeding
+4. ⚠️  If in doubt, ALWAYS ask the user first
+
+**Use this exact format:**
 
 ```
-⚠️  WARNING: HIGH-RISK SUPABASE/DOCKER OPERATION DETECTED
+⚠️  WARNING: DESTRUCTIVE DATABASE OPERATION DETECTED
 
-Operation: [specific operation being attempted]
-Target: [Supabase table/Docker container/etc.]
-Impact: [description of what will happen]
-Risk Level: HIGH/CRITICAL
+Operation: [specific SQL command or operation]
+Target: [Supabase table/database/Docker container/etc.]
+Impact: [DETAILED description of what will happen]
+Risk Level: CRITICAL
+Data at Risk: [Number of records/tables affected]
 
-This operation could result in significant data loss or system disruption.
-Affected: [e.g., "All stock data in Supabase", "ai-dividend-tracker container"]
+⚠️  THIS OPERATION WILL CAUSE PERMANENT DATA LOSS ⚠️
+Affected: [e.g., "ALL data in raw_stocks table (X records)", "entire database"]
 
-Do you want to proceed? Type 'yes' to confirm or 'no' to cancel.
+Recovery: [Is there a backup? How can this be undone?]
+
+Do you want to proceed?
+- Type 'yes' to CONFIRM and execute
+- Type 'no' to CANCEL (recommended)
 ```
+
+**If the operation is potentially destructive but you're uncertain, you MUST ask the user for guidance.**
 
 ## PROJECT-SPECIFIC RULES
 
@@ -96,35 +137,69 @@ Do you want to proceed? Type 'yes' to confirm or 'no' to cancel.
 
 ## EXAMPLES
 
-### Operations that DO require confirmation:
+### ❌ Operations that REQUIRE confirmation (NEVER execute without asking):
+- `DROP TABLE raw_stocks` or any DROP TABLE command
+- `TRUNCATE TABLE raw_stocks` or any TRUNCATE command
+- `DELETE FROM raw_stocks` (without WHERE clause)
+- `DELETE FROM raw_stocks WHERE price < 100` (bulk delete, >100 records)
+- `ALTER TABLE raw_stocks DROP COLUMN price` (dropping columns)
+- `npx supabase db reset` or any variant with flags - **ABSOLUTELY FORBIDDEN**
+- `npx supabase db push --force` - can overwrite schema destructively
 - "Reset the entire Supabase database"
-- "Clear all data from the stocks table"
-- "DROP TABLE stocks" or "DROP TABLE excluded_symbols"
-- "DELETE FROM stocks" (without WHERE clause)
-- "TRUNCATE TABLE stocks"
+- "Clear all data from any table"
 - "Remove the ai-dividend-tracker Docker container"
 - "Delete Docker volumes with database data"
-- "Remove all files in the project directory"
+- "Remove all migration files"
+- Any operation that could delete >10 records
 
-### Operations that DON'T require confirmation:
-- "python update_stock.py --discover-symbols"
-- "python update_stock.py --symbol AAPL"
-- "python portfolio_performance_calculator.py"
-- "UPDATE stocks SET price = 150.00 WHERE symbol = 'AAPL'"
-- "INSERT INTO stocks (symbol, price) VALUES ('MSFT', 300.00)"
-- "DELETE FROM stocks WHERE symbol = 'INVALID_SYMBOL'"
-- "SELECT * FROM stocks WHERE dividend_yield > 5"
-- "Delete logfile.log"
-- "Start the ai-dividend-tracker container"
-- "View Supabase database tables"
-- "Modify .env to add new API key"
+### ⚠️ REAL-WORLD INCIDENT - LEARN FROM THIS MISTAKE:
+**❌ WRONG APPROACH (caused data loss):**
+```bash
+# User needs to add 'aum' column to raw_stocks
+# AI incorrectly ran: npx supabase db reset --db-url "postgresql://..."
+# Result: ALL tables dropped, ALL data lost (thousands of records)
+```
 
-## FINAL REMINDER
+**✅ CORRECT APPROACH (preserves data):**
+```bash
+# Add column directly without resetting
+psql -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+  -c "ALTER TABLE raw_stocks ADD COLUMN IF NOT EXISTS aum NUMERIC(20, 2);"
+# Result: Column added, all existing data preserved
+```
 
-**Only ask for confirmation for operations that would:**
-- Delete significant amounts of data from Supabase (>1000 records or entire tables)
-- Remove Docker containers or volumes
-- Affect the entire system infrastructure
-- Use destructive SQL commands without proper WHERE clauses
+**Key Lesson:** Schema changes should NEVER require database resets. Use ALTER TABLE commands.
 
-**Normal stock data operations, individual record modifications, and development tasks are safe and require no confirmation.**
+### ✅ Operations that DON'T require confirmation (safe to execute):
+- `SELECT * FROM raw_stocks WHERE dividend_yield > 5`
+- `CREATE TABLE IF NOT EXISTS new_table (...)`
+- `ALTER TABLE raw_stocks ADD COLUMN new_field TEXT`
+- `CREATE INDEX idx_stocks_symbol ON raw_stocks(symbol)`
+- `INSERT INTO raw_stocks (symbol, price) VALUES ('MSFT', 300.00)`
+- `UPDATE raw_stocks SET price = 150.00 WHERE symbol = 'AAPL'` (single record)
+- `DELETE FROM raw_stocks WHERE symbol = 'INVALID_SYMBOL'` (single record)
+- Running Python scripts: `python update_stock.py --discover-symbols`
+- Running portfolio calculations: `python portfolio_performance_calculator.py`
+- Deleting log files: `rm logfile.log`
+- Starting/stopping Docker: `docker start ai-dividend-tracker`
+- Viewing data: `\dt` or `SELECT COUNT(*) FROM raw_stocks`
+- Modifying config files: editing `.env` or Python scripts
+
+## FINAL REMINDER - ZERO TOLERANCE POLICY
+
+**🔴 ABSOLUTE RULES - NO EXCEPTIONS:**
+1. **NEVER** execute DROP, TRUNCATE, or bulk DELETE without explicit user confirmation
+2. **NEVER** assume the user wants destructive operations - ALWAYS ask first
+3. **NEVER** delete data "to clean up" or "to fix issues" - ASK FIRST
+4. **ALWAYS** prefer CREATE TABLE IF NOT EXISTS over DROP/CREATE patterns
+5. **ALWAYS** use WHERE clauses in UPDATE and DELETE statements
+6. **ALWAYS** backup before structural changes
+7. **IF IN DOUBT → ASK THE USER FIRST**
+
+**When uncertain about any operation's safety:**
+- Stop immediately
+- Explain what you're about to do
+- Ask for explicit user permission
+- Wait for confirmation before proceeding
+
+**Remember: Data recovery is expensive, asking permission is free.**

@@ -452,7 +452,7 @@ class FMPClient(DataSourceClient):
 
                     future_dividends.append({
                         'symbol': symbol,
-                        'date': dividend.get('date'),
+                        'ex_date': dividend.get('date'),
                         'amount': dividend.get('dividend'),
                         'record_date': dividend.get('recordDate'),
                         'payment_date': dividend.get('paymentDate'),

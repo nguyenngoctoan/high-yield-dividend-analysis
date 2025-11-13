@@ -28,9 +28,9 @@ class APIConfig:
     # Rate Limiting Configuration
     # FMP Professional Plan: 750 requests/min (25 req/sec)
     # https://site.financialmodelingprep.com/pricing-plans
-    FMP_CONCURRENT_REQUESTS = 20  # Conservative for Professional plan (750 req/min)
-    ALPHA_VANTAGE_CONCURRENT_REQUESTS = 2  # Very conservative (Premium plan)
-    YAHOO_CONCURRENT_REQUESTS = 3  # Extremely conservative
+    FMP_CONCURRENT_REQUESTS = 18  # Increased from 6 to 18 for maximum throughput (3x boost)
+    ALPHA_VANTAGE_CONCURRENT_REQUESTS = 6  # Increased from 2 to 6 (3x boost)
+    YAHOO_CONCURRENT_REQUESTS = 9  # Increased from 3 to 9 (3x boost)
 
     # Request Timeouts
     REQUEST_TIMEOUT = 30  # seconds
@@ -58,14 +58,14 @@ class DatabaseConfig:
     TABLE_STOCKS = "raw_stocks"
     TABLE_STOCK_PRICES = "raw_stock_prices"
     TABLE_DIVIDEND_HISTORY = "raw_dividends"
-    TABLE_DIVIDEND_CALENDAR = "dividend_calendar"
+    TABLE_DIVIDEND_CALENDAR = "raw_future_dividends"
     TABLE_EXCLUDED_SYMBOLS = "raw_stocks_excluded"
     TABLE_STOCK_PRICES_HOURLY = "raw_stock_prices_hourly"
     TABLE_STOCK_SPLITS = "raw_stock_splits"
 
     # Batch Processing
     BATCH_SIZE = 20
-    UPSERT_BATCH_SIZE = 1000
+    UPSERT_BATCH_SIZE = 250  # Reduced from 1000 to prevent Supabase connection exhaustion
 
     @classmethod
     def validate(cls):
@@ -213,9 +213,9 @@ class ProcessingConfig:
     """Configuration for concurrent processing and performance."""
 
     # Thread Pool Configuration
-    MAX_WORKERS = 10
-    DISCOVERY_MAX_WORKERS = 20
-    VALIDATION_MAX_WORKERS = 15
+    MAX_WORKERS = 3  # Reduced to prevent socket exhaustion (was 5)
+    DISCOVERY_MAX_WORKERS = 3  # Reduced to prevent socket exhaustion (was 5)
+    VALIDATION_MAX_WORKERS = 3  # Reduced to prevent socket exhaustion (was 5)
 
     # Batch Sizes
     SYMBOL_DISCOVERY_BATCH = 100

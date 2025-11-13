@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* GitHub color palette */
+    --gh-canvas-default: #ffffff;
+    --gh-canvas-subtle: #f6f8fa;
+    --gh-border-default: #d0d7de;
+    --gh-border-muted: #d8dee4;
+    --gh-fg-default: #1f2328;
+    --gh-fg-muted: #656d76;
+    --gh-accent-fg: #0969da;
+    --gh-accent-emphasis: #0969da;
+    --gh-success-fg: #1a7f37;
+    --gh-danger-fg: #d1242f;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--gh-fg-default);
+  }
+}
+
+/* GitHub-style scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* GitHub-style code blocks */
+pre {
+  @apply bg-gray-50 border border-gray-200 rounded-md p-4 my-4 overflow-x-auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+code {
+  @apply font-mono bg-gray-100 px-1.5 py-0.5 rounded text-sm;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+pre code {
+  @apply bg-transparent px-0 py-0;
+}
+
+/* GitHub-style links */
+a {
+  @apply text-blue-600 no-underline;
+}
+
+a:hover {
+  @apply underline;
+}
+
+/* GitHub-style headings */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  line-height: 1.25;
+}
+
+h1 {
+  @apply text-3xl pb-2 border-b border-gray-200;
+  font-size: 2em;
+}
+
+h2 {
+  @apply text-2xl pb-2 border-b border-gray-200;
+  font-size: 1.5em;
+}
+
+h3 {
+  @apply text-xl;
+  font-size: 1.25em;
+}
+
+/* GitHub-style lists */
+ul, ol {
+  @apply pl-8 my-4;
+}
+
+li {
+  @apply my-0.5;
+}
+
+/* GitHub-style tables */
+table {
+  @apply w-full border-collapse my-4;
+}
+
+th, td {
+  @apply border border-gray-200 px-4 py-2 text-left;
+}
+
+th {
+  @apply bg-gray-50 font-semibold;
+}
+
+/* GitHub-style blockquotes */
+blockquote {
+  @apply border-l-4 border-gray-200 pl-4 my-4 text-gray-600;
+}
+
+/* Remove default transitions for GitHub-like feel */
+* {
+  transition: none;
+}
+
+/* GitHub-style badges */
+.badge {
+  @apply inline-block px-2 py-0.5 text-xs font-medium rounded;
+}
+
+.badge-blue {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-green {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-yellow {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-red {
+  @apply bg-red-100 text-red-800;
+}

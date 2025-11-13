@@ -123,6 +123,16 @@ def fetch_hourly_prices_for_all_stocks(target_hour=None):
 
     logger.info(f"Target hour: {target_hour.strftime('%Y-%m-%d %H:00')}")
 
+    # Before-state metrics
+    try:
+        supabase = get_supabase_client()
+        total_hourly_before = supabase.table('raw_stock_prices_hourly').select('symbol', count='exact').execute()
+        logger.info(f"")
+        logger.info(f"📊 BEFORE STATE:")
+        logger.info(f"  Total hourly records in database: {total_hourly_before.count:,}")
+    except Exception as e:
+        logger.warning(f"⚠️  Could not fetch before-state metrics: {e}")
+
     # Check if table exists
     if not create_hourly_table_if_not_exists():
         logger.error("❌ Cannot proceed without raw_stock_prices_hourly table")
@@ -204,14 +214,137 @@ def fetch_hourly_prices_for_all_stocks(target_hour=None):
         except Exception as e:
             logger.error(f"  ❌ Error saving final batch: {e}")
 
-    # Summary
+    # Detailed metrics and statistics
     logger.info("\n" + "=" * 80)
-    logger.info("✅ HOURLY PRICE FETCH COMPLETE")
+    logger.info("📊 HOURLY FETCH METRICS")
     logger.info("=" * 80)
+
+    success_rate = (successful / len(symbols_to_fetch) * 100) if symbols_to_fetch else 0
     logger.info(f"Target hour: {target_hour.strftime('%Y-%m-%d %H:00')}")
-    logger.info(f"Successful: {successful:,}")
-    logger.info(f"Failed: {failed:,}")
-    logger.info(f"Total processed: {len(symbols_to_fetch):,}")
+    logger.info(f"")
+    logger.info(f"📈 Fetch Results:")
+    logger.info(f"  ✅ Successful: {successful:,}")
+    logger.info(f"  ❌ Failed: {failed:,}")
+    logger.info(f"  📊 Total processed: {len(symbols_to_fetch):,}")
+    logger.info(f"  🎯 Success rate: {success_rate:.1f}%")
+
+    # Get additional metrics from database
+    try:
+        supabase = get_supabase_client()
+
+        # Total hourly records in database
+        total_hourly = supabase.table('raw_stock_prices_hourly').select('symbol', count='exact').execute()
+        logger.info(f"")
+        logger.info(f"💾 Database Status:")
+        logger.info(f"  📋 Total hourly records: {total_hourly.count:,}")
+
+        # Calculate growth (new records added)
+        try:
+            growth = total_hourly.count - total_hourly_before.count
+            logger.info(f"  📈 New records added: +{growth:,}")
+        except:
+            pass
+
+        # Records for this specific hour
+        hour_records = supabase.table('raw_stock_prices_hourly').select('symbol', count='exact').eq('timestamp', target_hour.isoformat()).execute()
+        logger.info(f"  🕐 Records for this hour: {hour_records.count:,}")
+
+        # Unique symbols with hourly data
+        all_symbols_hourly = supabase.table('raw_stock_prices_hourly').select('symbol').execute()
+        unique_symbols = len(set([s['symbol'] for s in all_symbols_hourly.data])) if all_symbols_hourly.data else 0
+        logger.info(f"  🏢 Unique symbols tracked: {unique_symbols:,}")
+
+        # Get total symbols for coverage calculation
+        all_symbols = supabase.table('raw_stocks').select('symbol', count='exact').execute()
+        coverage = (unique_symbols / all_symbols.count * 100) if all_symbols.count > 0 else 0
+        logger.info(f"  📊 Hourly data coverage: {coverage:.1f}% ({unique_symbols:,}/{all_symbols.count:,})")
+
+        # Sample prices from this hour
+        if hour_records.count > 0:
+            sample_prices = supabase.table('raw_stock_prices_hourly').select('symbol, close, volume').eq('timestamp', target_hour.isoformat()).limit(5).execute()
+            if sample_prices.data:
+                logger.info(f"")
+                logger.info(f"💰 Sample prices for {target_hour.strftime('%Y-%m-%d %H:00')}:")
+                for p in sample_prices.data:
+                    symbol = p.get('symbol', 'N/A')
+                    close = p.get('close', 0)
+                    volume = p.get('volume', 0)
+                    logger.info(f"  - {symbol:8s} ${close:8.2f}  Vol: {volume:,}")
+
+    except Exception as e:
+        logger.warning(f"⚠️  Could not fetch additional metrics: {e}")
+
+    # Error Detection and Quality Checks
+    logger.info("\n" + "=" * 80)
+    logger.info("🔍 ERROR DETECTION & QUALITY CHECKS")
+    logger.info("=" * 80)
+
+    critical_errors = []
+    warnings = []
+
+    # Check 1: Success rate
+    if success_rate < 50:
+        critical_errors.append(f"Success rate critically low: {success_rate:.1f}%")
+        logger.error(f"🔴 CRITICAL: Success rate critically low: {success_rate:.1f}%")
+        logger.error(f"   ACTION REQUIRED: Check FMP API status and credentials")
+    elif success_rate < 80:
+        warnings.append(f"Success rate below target: {success_rate:.1f}%")
+        logger.warning(f"🟡 WARNING: Success rate below target: {success_rate:.1f}%")
+        logger.warning(f"   RECOMMENDED: Review API rate limits and errors")
+    else:
+        logger.info(f"✅ Success rate acceptable: {success_rate:.1f}%")
+
+    # Check 2: No data fetched
+    if successful == 0:
+        critical_errors.append("No data successfully fetched")
+        logger.error(f"🔴 CRITICAL: No data successfully fetched")
+        logger.error(f"   ACTION REQUIRED: Verify FMP API connectivity")
+
+    # Check 3: Coverage check
+    try:
+        if coverage < 50:
+            warnings.append(f"Hourly data coverage low: {coverage:.1f}%")
+            logger.warning(f"🟡 WARNING: Hourly data coverage low: {coverage:.1f}%")
+            logger.warning(f"   RECOMMENDED: Increase symbols tracked hourly")
+        else:
+            logger.info(f"✅ Coverage acceptable: {coverage:.1f}%")
+    except:
+        pass
+
+    # Check 4: Market hours check (only warn if during market hours with low success)
+    hour_of_day = target_hour.hour
+    is_market_hours = (9 <= hour_of_day <= 16) and target_hour.weekday() < 5  # Mon-Fri, 9 AM - 4 PM
+
+    if is_market_hours and success_rate < 90:
+        warnings.append(f"Low success rate during market hours: {success_rate:.1f}%")
+        logger.warning(f"🟡 WARNING: Low success rate during market hours")
+        logger.warning(f"   RECOMMENDED: Market hours should have higher success rate")
+    elif is_market_hours:
+        logger.info(f"✅ Market hours data collection normal")
+    else:
+        logger.info(f"ℹ️  INFO: Outside market hours ({target_hour.strftime('%H:00')})")
+
+    # Summary
+    if not critical_errors and not warnings:
+        logger.info(f"✅ No data quality issues detected")
+
+    logger.info("\n" + "=" * 80)
+    if critical_errors:
+        logger.error(f"⚠️  HOURLY FETCH COMPLETED WITH ERRORS")
+        logger.error(f"🔴 {len(critical_errors)} critical error(s) detected:")
+        for err in critical_errors:
+            logger.error(f"   - {err}")
+        if warnings:
+            logger.warning(f"🟡 {len(warnings)} warning(s) detected:")
+            for warn in warnings:
+                logger.warning(f"   - {warn}")
+    elif warnings:
+        logger.info(f"✅ HOURLY PRICE FETCH COMPLETE")
+        logger.warning(f"⚠️  {len(warnings)} warning(s) detected - review recommended:")
+        for warn in warnings:
+            logger.warning(f"   - {warn}")
+    else:
+        logger.info(f"🎉 HOURLY PRICE FETCH COMPLETED SUCCESSFULLY")
     logger.info("=" * 80)
 
 if __name__ == "__main__":

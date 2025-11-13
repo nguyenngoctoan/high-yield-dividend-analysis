@@ -6,12 +6,17 @@ Replaces all static URL-based YieldMax scrapers with dynamic article discovery.
 """
 
 import sys
+import os
 import time
 import logging
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import re
+
+# Add paths to import helpers
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))  # For supabase_helpers
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'archive', 'old_scripts'))
 from scrape_dividend_calendar_requests import extract_table_data, save_to_dividend_calendar
 
 # Setup logging
@@ -126,11 +131,35 @@ class YieldMaxDynamicScraper:
         
         return dividend_articles, other_articles
     
+    def get_existing_source_urls(self):
+        """Get set of already-scraped source URLs from database"""
+        try:
+            from dotenv import load_dotenv
+            from supabase import create_client
+
+            load_dotenv()
+            url = os.getenv('SUPABASE_URL')
+            key = os.getenv('SUPABASE_KEY')
+            supabase = create_client(url, key)
+
+            result = supabase.table('raw_dividends_yieldmax').select('source_url').execute()
+            existing_urls = set()
+            if result.data:
+                for row in result.data:
+                    if row.get('source_url'):
+                        existing_urls.add(row['source_url'])
+            logger.info(f"📊 Found {len(existing_urls)} existing source URLs in database")
+            return existing_urls
+        except Exception as e:
+            logger.warning(f"⚠️  Could not fetch existing source URLs: {e}")
+            return set()
+
     def scrape_articles(self, articles, article_type="dividend"):
         """Scrape dividend data from discovered articles"""
         total_saved = 0
         successful_articles = 0
-        
+        skipped_count = 0
+
         logger.info(f"🚀 Starting dynamic YieldMax scraping - {len(articles)} {article_type} articles")
         print(f"🎯 Dynamic YieldMax Scraper")
         print("=" * 80)
@@ -138,8 +167,17 @@ class YieldMaxDynamicScraper:
         print(f"🗓️ Date range: Last {self.days_back} days")
         print(f"🔍 Auto-discovered from: {self.search_url}")
         print("=" * 80)
-        
+
+        # Get existing source URLs to skip
+        existing_urls = self.get_existing_source_urls()
+
         for i, article in enumerate(articles, 1):
+            # Check if this article was already scraped
+            if article['url'] in existing_urls:
+                logger.info(f"⏭️  Skipping article {i}/{len(articles)}: {article['title']} (already scraped)")
+                print(f"\r⏭️  Skipped {i}/{len(articles)} articles (already in DB)", end='', flush=True)
+                skipped_count += 1
+                continue
             try:
                 logger.info(f"📰 Processing article {i}/{len(articles)}: {article['url']}")
                 print(f"\n📰 Article {i}/{len(articles)} - {article['date'].strftime('%B %d, %Y')}")
@@ -157,8 +195,8 @@ class YieldMaxDynamicScraper:
                     for record in data:
                         print(f"  • {record['ticker']}: ${record['amount']} (ex: {record['ex_date']}, pay: {record['payment_date']})")
                     
-                    # Save to database
-                    saved_count = save_to_dividend_calendar(data)
+                    # Save to database with source URL
+                    saved_count = save_to_dividend_calendar(data, article['url'])
                     total_saved += saved_count
                     successful_articles += 1
                     
@@ -183,7 +221,12 @@ class YieldMaxDynamicScraper:
                 logger.error(f"❌ Error processing article {i}: {e}")
                 print(f"❌ Error: {e}")
                 continue
-        
+
+        print(f"\n\n✅ Summary: Processed {len(articles)} articles")
+        print(f"   • Skipped: {skipped_count} (already in DB)")
+        print(f"   • Scraped: {successful_articles}")
+        print(f"   • Total saved: {total_saved}")
+
         return total_saved, successful_articles
     
     def run(self):

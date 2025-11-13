@@ -218,7 +218,9 @@ class StockDataPipeline:
                        update_prices: bool = True,
                        update_dividends: bool = True,
                        update_companies: bool = True,
-                       from_date: date = None) -> Dict[str, Any]:
+                       from_date: date = None,
+                       skip_recently_updated: bool = True,
+                       staleness_hours: int = 20) -> Dict[str, Any]:
         """
         Update mode: Fetch and store data for symbols.
 
@@ -228,6 +230,8 @@ class StockDataPipeline:
             update_dividends: Whether to update dividends
             update_companies: Whether to update company info
             from_date: Start date for historical data
+            skip_recently_updated: Skip symbols updated within staleness_hours (default: True)
+            staleness_hours: Hours before symbol needs update (default: 20)
 
         Returns:
             Dictionary with update results
@@ -246,6 +250,22 @@ class StockDataPipeline:
         if not symbols:
             logger.warning("⚠️  No symbols to update")
             return {'prices': 0, 'dividends': 0, 'companies': 0}
+
+        # OPTIMIZATION: Filter out recently updated symbols (staleness check)
+        original_count = len(symbols)
+        if skip_recently_updated:
+            from lib.processors.incremental_processor import IncrementalProcessor
+            symbols, skipped_symbols = IncrementalProcessor.filter_stale_symbols(
+                symbols,
+                max_staleness_hours=staleness_hours
+            )
+            logger.info(
+                f"⚡ STALENESS FILTER: Processing {len(symbols):,} symbols "
+                f"(skipped {len(skipped_symbols):,} recently updated)"
+            )
+            if len(skipped_symbols) > 0:
+                time_saved_min = len(skipped_symbols) * 2  # Rough estimate: 2 seconds per symbol
+                logger.info(f"⏱️  Estimated time saved: ~{time_saved_min // 60}min {time_saved_min % 60}s")
 
         results = {}
 
@@ -396,6 +416,119 @@ class StockDataPipeline:
         )
 
         return summary
+
+    def run_update_by_exchange(self,
+                              exchange_groups: List[List[str]] = None,
+                              update_prices: bool = True,
+                              update_dividends: bool = True,
+                              update_companies: bool = True,
+                              from_date: date = None,
+                              skip_recently_updated: bool = True,
+                              staleness_hours: int = 20) -> Dict[str, Any]:
+        """
+        Update mode with exchange-based grouping for parallel processing.
+        This allows running multiple exchange groups in parallel to reduce total runtime.
+
+        Args:
+            exchange_groups: List of exchange groups to process (each group is a list of exchanges)
+                           If None, uses default grouping: [NASDAQ], [NYSE+AMEX], [Others]
+            update_prices: Whether to update prices
+            update_dividends: Whether to update dividends
+            update_companies: Whether to update company info
+            from_date: Start date for historical data
+            skip_recently_updated: Skip symbols updated within staleness_hours
+            staleness_hours: Hours before symbol needs update
+
+        Returns:
+            Dictionary with update results per exchange group
+        """
+        logger.info("=" * 60)
+        logger.info("UPDATE MODE - BY EXCHANGE GROUPS")
+        logger.info("=" * 60)
+
+        # Default exchange grouping for parallel processing
+        if exchange_groups is None:
+            exchange_groups = [
+                ['NASDAQ', 'NGM'],           # NASDAQ exchanges (largest, ~50% of symbols)
+                ['NYSE', 'AMEX'],            # NYSE exchanges (~30% of symbols)
+                ['CBOE', 'BATS', 'BTS', 'BYX', 'BZX', 'EDGA', 'EDGX', 'PCX'],  # Other US exchanges
+                ['OTCM', 'OTCX'],            # OTC markets
+                ['TSX', 'TSXV', 'CSE', 'TSE'] # Canadian exchanges
+            ]
+
+        logger.info(f"📊 Processing {len(exchange_groups)} exchange groups:")
+        for i, group in enumerate(exchange_groups, 1):
+            logger.info(f"  Group {i}: {', '.join(group)}")
+
+        # Get symbols grouped by exchange
+        from supabase_helpers import get_supabase_client
+        supabase = get_supabase_client()
+
+        all_results = {}
+
+        for i, exchanges in enumerate(exchange_groups, 1):
+            logger.info("")
+            logger.info(f"{'=' * 60}")
+            logger.info(f"EXCHANGE GROUP {i}/{len(exchange_groups)}: {', '.join(exchanges)}")
+            logger.info(f"{'=' * 60}")
+
+            try:
+                # Fetch symbols for this exchange group
+                result = supabase.table('raw_stocks') \
+                    .select('symbol') \
+                    .in_('exchange', exchanges) \
+                    .execute()
+
+                if not result.data:
+                    logger.info(f"⏭️  No symbols found for exchanges: {', '.join(exchanges)}")
+                    continue
+
+                symbols = [s['symbol'] for s in result.data]
+                logger.info(f"📊 Found {len(symbols):,} symbols in {', '.join(exchanges)}")
+
+                # Run update for this group
+                group_results = self.run_update_mode(
+                    symbols=symbols,
+                    update_prices=update_prices,
+                    update_dividends=update_dividends,
+                    update_companies=update_companies,
+                    from_date=from_date,
+                    skip_recently_updated=skip_recently_updated,
+                    staleness_hours=staleness_hours
+                )
+
+                group_key = f"Group{i}_{'-'.join(exchanges[:2])}"
+                all_results[group_key] = group_results
+
+            except Exception as e:
+                logger.error(f"❌ Error processing exchange group {i}: {e}")
+                continue
+
+        # Summary
+        logger.info("")
+        logger.info("=" * 60)
+        logger.info("EXCHANGE GROUP SUMMARY")
+        logger.info("=" * 60)
+
+        for group_name, results in all_results.items():
+            logger.info(f"\n{group_name}:")
+            if 'prices' in results:
+                logger.info(
+                    f"  Prices: {results['prices']['successful']} successful, "
+                    f"{results['prices']['failed']} failed"
+                )
+            if 'dividends' in results:
+                logger.info(
+                    f"  Dividends: {results['dividends']['successful']} successful, "
+                    f"{results['dividends']['failed']} failed"
+                )
+            if 'companies' in results:
+                logger.info(
+                    f"  Companies: {results['companies']['successful']} successful, "
+                    f"{results['companies']['failed']} failed"
+                )
+
+        return all_results
 
 
 def main():
