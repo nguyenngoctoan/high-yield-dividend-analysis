@@ -9,6 +9,7 @@ This is a high-yield dividend stock analysis and portfolio management system tha
 **Status**: ✅ **Fully refactored and production-ready** (October 2025)
 **API Status**: ✅ **v1.2.0 - Premium features live** (November 2025)
 **Documentation Site**: ✅ **Next.js docs site live at localhost:3000**
+**Authentication**: ✅ **Google OAuth with user management** (November 2025)
 
 ## Core Architecture
 

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Dividend API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .user-name {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            border: 1px solid #dc3545;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+            border-color: #bd2130;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .api-key-list {
+            list-style: none;
+        }
+
+        .api-key-item {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .api-key-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .api-key-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .api-key-prefix {
+            font-family: 'Courier New', monospace;
+            color: #666;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .api-key-meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .new-key-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .new-key-value {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #d63384;
+            word-break: break-all;
+            margin: 8px 0;
+        }
+
+        .warning-text {
+            color: #856404;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">📊</div>
+            <div class="header-title">Dividend API</div>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <img id="user-avatar" class="user-avatar" src="" alt="User avatar">
+                <span id="user-name" class="user-name"></span>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">API Keys</h2>
+                <button class="btn" onclick="showCreateKeyModal()">Create New Key</button>
+            </div>
+            <div id="api-keys-container" class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Create API Key Modal -->
+    <div id="create-key-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-header">Create New API Key</h3>
+            <form id="create-key-form" onsubmit="createApiKey(event)">
+                <div class="form-group">
+                    <label class="form-label">Key Name</label>
+                    <input type="text" class="form-input" id="key-name" placeholder="Production API Key" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Expiration (optional)</label>
+                    <select class="form-select" id="key-expiration">
+                        <option value="">Never</option>
+                        <option value="30">30 days</option>
+                        <option value="90">90 days</option>
+                        <option value="365">1 year</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateKeyModal()">Cancel</button>
+                    <button type="submit" class="btn">Create Key</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Key Display Modal -->
+    <div id="new-key-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-header">API Key Created Successfully!</h3>
+            <div class="new-key-display">
+                <p><strong>Your new API key:</strong></p>
+                <div class="new-key-value" id="new-key-value"></div>
+                <p class="warning-text">⚠️ Make sure to copy your API key now. You won't be able to see it again!</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="copyKeyAndClose()">Copy & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let newApiKey = null;
+
+        // Check authentication on load
+        async function checkAuth() {
+            try {
+                const response = await fetch('/auth/me', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                currentUser = await response.json();
+                document.getElementById('user-name').textContent = currentUser.name || currentUser.email;
+                document.getElementById('user-avatar').src = currentUser.picture_url || 'https://via.placeholder.com/32';
+
+                loadApiKeys();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // Load API keys
+        async function loadApiKeys() {
+            try {
+                const response = await fetch('/v1/keys', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load API keys');
+                }
+
+                const keys = await response.json();
+                displayApiKeys(keys);
+            } catch (error) {
+                console.error('Failed to load API keys:', error);
+                document.getElementById('api-keys-container').innerHTML = '<div class="empty-state">Failed to load API keys</div>';
+            }
+        }
+
+        // Display API keys
+        function displayApiKeys(keys) {
+            const container = document.getElementById('api-keys-container');
+
+            if (keys.length === 0) {
+                container.innerHTML = '<div class="empty-state">No API keys yet. Create your first one to get started!</div>';
+                return;
+            }
+
+            const html = '<ul class="api-key-list">' + keys.map(key => `
+                <li class="api-key-item">
+                    <div class="api-key-header">
+                        <div>
+                            <div class="api-key-name">${escapeHtml(key.name)}</div>
+                            <div class="api-key-prefix">${escapeHtml(key.key_prefix)}...</div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="revokeKey('${key.id}', '${escapeHtml(key.name)}')">Revoke</button>
+                    </div>
+                    <div class="api-key-meta">
+                        <span class="badge ${key.is_active ? 'badge-success' : 'badge-warning'}">${key.is_active ? 'Active' : 'Revoked'}</span>
+                        <span class="badge badge-info">${escapeHtml(key.tier)}</span>
+                        <span>Created: ${new Date(key.created_at).toLocaleDateString()}</span>
+                        ${key.last_used_at ? `<span>Last used: ${new Date(key.last_used_at).toLocaleDateString()}</span>` : ''}
+                        <span>Requests: ${key.request_count.toLocaleString()}</span>
+                    </div>
+                </li>
+            `).join('') + '</ul>';
+
+            container.innerHTML = html;
+        }
+
+        // Create API key
+        async function createApiKey(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('key-name').value;
+            const expiration = document.getElementById('key-expiration').value;
+
+            try {
+                const response = await fetch('/v1/keys', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        expires_in_days: expiration ? parseInt(expiration) : null
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create API key');
+                }
+
+                const result = await response.json();
+                newApiKey = result.api_key;
+
+                closeCreateKeyModal();
+                showNewKeyModal();
+                loadApiKeys();
+            } catch (error) {
+                console.error('Failed to create API key:', error);
+                alert('Failed to create API key. Please try again.');
+            }
+        }
+
+        // Revoke API key
+        async function revokeKey(keyId, keyName) {
+            if (!confirm(`Are you sure you want to revoke "${keyName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/v1/keys/${keyId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to revoke API key');
+                }
+
+                loadApiKeys();
+            } catch (error) {
+                console.error('Failed to revoke API key:', error);
+                alert('Failed to revoke API key. Please try again.');
+            }
+        }
+
+        // Logout
+        function logout() {
+            // Simply redirect to logout endpoint
+            // It will clear cookies and redirect to login
+            window.location.href = '/auth/logout';
+        }
+
+        // Modal functions
+        function showCreateKeyModal() {
+            document.getElementById('create-key-modal').classList.add('active');
+        }
+
+        function closeCreateKeyModal() {
+            document.getElementById('create-key-modal').classList.remove('active');
+            document.getElementById('create-key-form').reset();
+        }
+
+        function showNewKeyModal() {
+            document.getElementById('new-key-value').textContent = newApiKey;
+            document.getElementById('new-key-modal').classList.add('active');
+        }
+
+        function copyKeyAndClose() {
+            navigator.clipboard.writeText(newApiKey);
+            document.getElementById('new-key-modal').classList.remove('active');
+            alert('API key copied to clipboard!');
+        }
+
+        // Utility function
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>
