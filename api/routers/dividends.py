@@ -21,27 +21,78 @@ router = APIRouter()
 
 @router.get("/dividends/calendar", response_model=DividendListResponse, summary="Get dividend calendar")
 async def get_dividend_calendar(
-    start_date: Optional[date] = Query(None, description="Start date"),
-    end_date: Optional[date] = Query(None, description="End date"),
+    start_date: Optional[date] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date (YYYY-MM-DD)"),
+    range: Optional[str] = Query(None, description="Preset range: 1w, 1m, 3m, 6m, 1y"),
     symbols: Optional[str] = Query(None, description="Comma-separated symbols"),
     min_yield: Optional[float] = Query(None, ge=0, description="Minimum yield %"),
     event_type: Optional[DividendEventType] = Query(None, description="Event type filter"),
-    limit: int = Query(100, ge=1, le=1000, description="Results per page")
+    limit: int = Query(100, ge=1, le=5000, description="Max results (default 100, max 5000)"),
+    sort: str = Query("asc", description="Sort order: asc (earliest first), desc (latest first)")
 ) -> DividendListResponse:
     """
-    Get upcoming dividend events (ex-dates, payment dates).
+    Get upcoming dividend events (ex-dates, payment dates) with flexible date filtering.
 
-    Returns a list of future dividend events with optional filtering.
+    Examples:
+    - /dividends/calendar → Next 90 days
+    - /dividends/calendar?range=1m → Next month
+    - /dividends/calendar?start_date=2024-01-01 → From Jan 1 to 90 days later
+    - /dividends/calendar?start_date=2024-01-01&end_date=2024-12-31 → Full year 2024
+    - /dividends/calendar?range=3m&symbols=AAPL,MSFT → AAPL/MSFT next 3 months
     """
     try:
+        from datetime import timedelta
         supabase = get_supabase_client()
 
-        # Default to next 90 days if no dates provided
-        if not start_date:
-            start_date = date.today()
-        if not end_date:
-            from datetime import timedelta
+        # Handle preset ranges (overrides dates if provided)
+        if range:
+            today = date.today()
+            range_map = {
+                '1w': 7,
+                '1m': 30,
+                '3m': 90,
+                '6m': 180,
+                '1y': 365
+            }
+
+            if range in range_map:
+                start_date = today
+                end_date = today + timedelta(days=range_map[range])
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"error": {
+                        "type": "invalid_request_error",
+                        "message": f"Invalid range '{range}'. Valid options: 1w, 1m, 3m, 6m, 1y",
+                        "param": "range",
+                        "code": "invalid_range"
+                    }}
+                )
+
+        # Handle start_date only case (from start_date + 90 days)
+        elif start_date and not end_date:
             end_date = start_date + timedelta(days=90)
+
+        # Handle end_date only case (90 days before end_date to end_date)
+        elif end_date and not start_date:
+            start_date = end_date - timedelta(days=90)
+
+        # Default: next 90 days from today
+        elif not start_date and not end_date:
+            start_date = date.today()
+            end_date = start_date + timedelta(days=90)
+
+        # Validate sort parameter
+        if sort not in ['asc', 'desc']:
+            raise HTTPException(
+                status_code=400,
+                detail={"error": {
+                    "type": "invalid_request_error",
+                    "message": f"Invalid sort '{sort}'. Must be 'asc' or 'desc'",
+                    "param": "sort",
+                    "code": "invalid_sort"
+                }}
+            )
 
         # Build query
         query = supabase.table('raw_future_dividends').select('*')
@@ -59,7 +110,7 @@ async def get_dividend_calendar(
             pass  # TODO: Implement yield filter with join
 
         # Order and limit
-        query = query.order('ex_date', desc=False).limit(limit)
+        query = query.order('ex_date', desc=(sort == 'desc')).limit(limit)
 
         # Execute query
         result = query.execute()

@@ -87,7 +87,8 @@ class AdaptiveRateLimiter(RateLimiter):
     """
 
     def __init__(self, max_concurrent: int, name: str = "API",
-                 backoff_factor: float = 2.0, max_backoff: float = 60.0):
+                 backoff_factor: float = 2.0, max_backoff: float = 60.0,
+                 min_delay: float = 0.0):
         """
         Initialize adaptive rate limiter.
 
@@ -96,13 +97,16 @@ class AdaptiveRateLimiter(RateLimiter):
             name: Name of the API
             backoff_factor: Multiplier for backoff delay
             max_backoff: Maximum backoff delay in seconds
+            min_delay: Minimum delay between requests in seconds (applied to all requests)
         """
         super().__init__(max_concurrent, name)
         self.backoff_factor = backoff_factor
         self.max_backoff = max_backoff
+        self.min_delay = min_delay
         self._current_backoff = 0.0
         self._consecutive_success = 0
         self._consecutive_failures = 0
+        self._last_request_time = 0.0
 
     def report_success(self):
         """Report a successful API call."""
@@ -142,15 +146,24 @@ class AdaptiveRateLimiter(RateLimiter):
 
     @contextmanager
     def limit(self):
-        """Context manager with backoff support."""
-        # Apply backoff delay if needed
-        if self._current_backoff > 0:
-            logger.debug(f"[{self.name}] Applying backoff delay: {self._current_backoff:.2f}s")
-            time.sleep(self._current_backoff)
+        """Context manager with backoff and minimum delay support."""
+        # Calculate total delay needed
+        total_delay = max(self._current_backoff, self.min_delay)
+
+        # Enforce minimum delay between requests
+        if total_delay > 0:
+            current_time = time.time()
+            time_since_last = current_time - self._last_request_time
+
+            if time_since_last < total_delay:
+                sleep_time = total_delay - time_since_last
+                logger.debug(f"[{self.name}] Applying delay: {sleep_time:.2f}s")
+                time.sleep(sleep_time)
 
         self.acquire()
         try:
             yield
+            self._last_request_time = time.time()
         finally:
             self.release()
 
@@ -215,9 +228,10 @@ class GlobalRateLimiters:
                 max_concurrent=max_concurrent,
                 name="Yahoo Finance",
                 backoff_factor=2.0,
-                max_backoff=60.0
+                max_backoff=60.0,
+                min_delay=0.5  # 500ms minimum delay between requests
             )
-            logger.info(f"✅ Initialized Yahoo Finance rate limiter (max_concurrent={max_concurrent})")
+            logger.info(f"✅ Initialized Yahoo Finance rate limiter (max_concurrent={max_concurrent}, min_delay=0.5s)")
         return cls._yahoo_limiter
 
     @classmethod

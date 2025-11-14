@@ -1,0 +1,343 @@
+================================================================================
+HIGH-YIELD DIVIDEND ANALYSIS DATABASE - API DATA EXPOSURE SUMMARY
+================================================================================
+
+DATABASE CONTENTS: 100+ DISTINCT DATA POINTS
+STORAGE: 9 Core Raw Tables + 6+ Mart Tables
+TOTAL SIZE: ~10 GB (Local) | ~50-100 MB (Recommended Remote)
+
+================================================================================
+CORE RAW TABLES (Data Storage Layer)
+================================================================================
+
+1. raw_stocks (24,842 rows | 219 MB)
+   - Master data for all stocks/ETFs
+   - Core fields: symbol, name, exchange, sector, industry, type
+   - Financial metrics: price, volume, PE ratio, market cap
+   - Dividend data: yield, amount, frequency, payout ratio, dates
+   - ETF fields: expense ratio, holdings, related stock, strategy
+   - Data sources tracked per symbol
+
+2. raw_stock_prices (20.2M rows | 7.5 GB)
+   - Daily OHLCV price data
+   - Adjusted close (accounts for splits/dividends)
+   - Volume-weighted average price (VWAP)
+   - Implied volatility (IV)
+   - Assets Under Management (AUM) - time-series for ETFs
+   - 20+ years of price history
+
+3. raw_dividends (686K+ rows | 250 MB)
+   - Historical dividend payments
+   - Per-share amounts with adjustments
+   - Complete calendar dates (ex-date, payment, record, declaration)
+   - Frequency tracking (monthly, quarterly, annual, etc.)
+   - 5+ years of dividend history
+
+4. raw_stock_prices_hourly (Variable | Intraday data)
+   - Hourly OHLCV during market hours
+   - Intraday volatility metrics
+   - Trade counts and volume per hour
+   - Hour-of-day categorization (0-23)
+
+5. raw_stock_splits (Sparse | Historical corporate actions)
+   - Stock split dates and ratios
+   - Multiple ratio formats (decimal, fraction, text)
+   - Needed for accurate historical price adjustment
+
+6. raw_holdings_history (Variable | ETF composition)
+   - ETF holdings snapshots by date
+   - Holding weights, shares, market values
+   - Sector allocation data
+   - CUSIP identifiers
+
+7. raw_yieldmax_dividends (Growing | Press releases)
+   - YieldMax ETF dividend announcements
+   - Weekly distribution tracking
+   - Press release sources
+   - Option strategy income data
+
+8. raw_excluded_symbols (Audit trail)
+   - Exclusion reasons
+   - Validation attempt tracking
+   - Auto vs manual exclusion flags
+
+================================================================================
+MART TABLES (Materialized Views for API Performance)
+================================================================================
+
+✓ mart_high_yield_stocks (1K-5K rows)
+  - Pre-filtered stocks with yield >= 4%
+  - Ranked by dividend yield
+
+✓ mart_dividend_calendar (50K rows)
+  - Upcoming dividends (90-day forward)
+  - Optimized for calendar views
+
+✓ mart_monthly_dividend_payers (2K-5K rows)
+  - Monthly payers ranked by yield
+  - Perfect for income-focused investors
+
+✓ mart_etf_holdings_summary
+  - Aggregated ETF holdings
+  - Top holdings with weights
+
+✓ mart_portfolio_current_holdings
+  - Portfolio tracking tables
+
+✓ mart_portfolio_list_with_holdings
+  - Portfolio aggregations
+
+✓ Additional API optimization functions:
+  - get_high_yield_stocks()
+  - search_stocks()
+  - get_dividend_summary()
+  - refresh_api_materialized_views()
+
+================================================================================
+DATA POINTS BY CATEGORY (105 Total)
+================================================================================
+
+STOCK FUNDAMENTALS (14 points)
+  - Symbol, Name, Company
+  - Exchange, Exchange Short Name
+  - Sector, Industry, Type
+  - Is ETF flag
+  - Currency, Country
+  - IPO Date
+  - Market Cap
+  - Current Price
+  - Current Volume
+
+DIVIDEND METRICS (12 points)
+  - Dividend Yield (%)
+  - Dividend Amount Per Share
+  - Dividend Frequency
+  - Payout Ratio (%)
+  - Ex-Dividend Date
+  - Payment Date
+  - Declaration Date
+  - Record Date
+  - Adjusted Dividend
+  - Dividend Growth Rates (1yr, 3yr, 5yr, 10yr)
+  - Consecutive Increase Years
+  - Dividend History (5+ years)
+
+PRICE DATA (12 points)
+  - Open, High, Low, Close
+  - Adjusted Close
+  - Volume, Change, Change %
+  - VWAP (Volume-Weighted Avg Price)
+  - Price Label
+  - Change Over Time
+  - 20M+ historical records
+
+VOLATILITY & OPTIONS (2 points)
+  - Implied Volatility (IV)
+  - Intraday Volatility (VWAP)
+
+ETF ASSETS (1 point)
+  - AUM (Assets Under Management) - time-series daily
+
+HOURLY/INTRADAY (11 points)
+  - Hourly Open, High, Low, Close
+  - Hourly Adjusted Close
+  - Hourly Volume
+  - Hourly Trade Count
+  - Hourly VWAP
+  - Hourly Change, Change %
+  - Hour of Day (0-23)
+
+CORPORATE ACTIONS (4 points)
+  - Stock Split Date
+  - Split Ratio (decimal)
+  - Split Numerator/Denominator
+  - Split Description
+
+ETF-SPECIFIC (8 points)
+  - Expense Ratio (%)
+  - Fund Family
+  - ETF Description
+  - Related Underlying Stock
+  - Investment Strategy Type
+  - Holdings Count
+  - Holdings Composition (JSONB)
+  - Holdings Updated Timestamp
+
+ETF HOLDINGS (8 points)
+  - Holding Symbol
+  - Holding Name
+  - Holding Weight (%)
+  - Holding Shares
+  - Holding Market Value
+  - Holding CUSIP
+  - Holding Sector
+  - Holdings Snapshot Date
+
+YIELDMAX DATA (5 points)
+  - YieldMax Dividend Amount
+  - Per-Share Amount
+  - Frequency
+  - Payment Dates
+  - Press Release URL
+
+DATA QUALITY (7 points)
+  - Last Updated Timestamp
+  - Data Source Identifier
+  - Currency Indicator
+  - Creation Timestamp
+  - Validation Status
+  - Exclusion Reason
+  - Validation Attempt Count
+
+CALCULATED METRICS (9 points)
+  - 1yr Dividend Growth Rate
+  - 3yr Dividend Growth Rate
+  - 5yr Dividend Growth Rate
+  - 10yr Dividend Growth Rate
+  - Consecutive Years of Dividends
+  - Dividend Increase Consistency
+  - Dividend Suspension Count
+  - Payout Ratio Trend
+  - Yield Trend Over Time
+
+PORTFOLIO ANALYSIS (4 points)
+  - Position Weight (%)
+  - Dividend Income Contribution
+  - Portfolio Yield (weighted)
+  - Performance vs Benchmark
+
+DATA SOURCE TRACKING (5 points)
+  - Preferred Source per Data Type
+  - Last Successful Fetch
+  - Fetch Attempt Count
+  - Availability by Source
+  - Source-specific Notes
+
+================================================================================
+RECOMMENDED API ENDPOINTS
+================================================================================
+
+STOCK DATA
+  GET /v1/stocks/{symbol}
+    Returns: Complete profile with price, dividend, metrics
+
+DIVIDEND OPERATIONS
+  GET /v1/stocks/{symbol}/dividends
+    Returns: History + future calendar
+  GET /v1/dividends/calendar
+    Returns: Upcoming events (90 days)
+  GET /v1/dividends/upcoming
+    Returns: Next dividend payments
+
+PRICE & TECHNICAL
+  GET /v1/stocks/{symbol}/price-history
+    Returns: OHLCV with adjusted close
+  GET /v1/stocks/{symbol}/intraday
+    Returns: Hourly prices for today/recent
+  GET /v1/stocks/{symbol}/splits
+    Returns: Historical stock splits
+
+ETF-SPECIFIC
+  GET /v1/etfs/{symbol}/holdings
+    Returns: Current composition with weights
+  GET /v1/etfs/{symbol}/holdings-history
+    Returns: Holdings changes over time
+  GET /v1/etfs/{symbol}/metrics
+    Returns: Expense ratio, AUM, strategy
+
+SCREENERS
+  GET /v1/screeners/high-yield
+    Returns: Stocks with yield >= 4%
+  GET /v1/screeners/monthly-payers
+    Returns: Monthly dividend payers
+  GET /v1/screeners/dividend-growth
+    Returns: Strong dividend growers
+
+SEARCH & DISCOVERY
+  GET /v1/stocks/search
+    Returns: Fuzzy search by symbol/company
+  GET /v1/stocks/by-sector/{sector}
+    Returns: All stocks in sector
+  GET /v1/etfs/by-strategy/{strategy}
+    Returns: ETFs by strategy
+
+PORTFOLIO
+  POST /v1/portfolio/analyze
+    Returns: Portfolio dividend analysis
+  GET /v1/portfolio/{id}/metrics
+    Returns: Portfolio performance
+
+METRICS & ANALYTICS
+  GET /v1/stocks/{symbol}/metrics
+    Returns: All calculated metrics
+  GET /v1/stocks/{symbol}/dividend-growth
+    Returns: Growth rates (1yr, 3yr, 5yr, 10yr)
+  GET /v1/stocks/{symbol}/volatility
+    Returns: IV and VWAP data
+
+================================================================================
+DATA VOLUME & REFRESH RATES
+================================================================================
+
+Table                    | Rows          | Size    | Update Frequency
+-------------------------|---------------|---------|------------------
+raw_stocks               | 24,842        | 219 MB  | Daily
+raw_stock_prices         | 20,254,716    | 7.5 GB  | Daily (10-20K new rows)
+raw_dividends            | 686,000+      | 250 MB  | Daily (100-200 new rows)
+raw_stock_prices_hourly  | Variable      | -       | Hourly during market
+raw_stock_splits         | Variable      | -       | Rare (<10/day)
+raw_holdings_history     | Variable      | -       | Daily (10-50 new rows)
+raw_yieldmax_dividends   | Growing       | -       | Daily (5-20 new rows)
+
+TOTAL LOCAL DATABASE: ~10 GB
+RECOMMENDED REMOTE (MARTS ONLY): ~50-100 MB
+
+================================================================================
+KEY INVESTOR VALUE PROPOSITIONS
+================================================================================
+
+1. DIVIDEND ANALYSIS (Tier-1 Value)
+   ✓ Current yield, payout ratio, frequency
+   ✓ 5+ year dividend history and growth rates
+   ✓ Dividend consistency metrics (Aristocrats)
+   ✓ Future dividend calendar
+
+2. ETF ANALYSIS (Tier-1 Value)
+   ✓ Holdings composition with weights
+   ✓ Sector allocation
+   ✓ AUM tracking (daily updates)
+   ✓ Expense ratio
+   ✓ Strategy classification (80+ types)
+   ✓ Holdings history (portfolio changes)
+
+3. PORTFOLIO TOOLS (Tier-1 Value)
+   ✓ Dividend income projection
+   ✓ Yield calculation
+   ✓ Holdings tracking
+   ✓ Performance analysis
+
+4. SCREENERS (Tier-1 Value)
+   ✓ High-yield filter (yield >= 4%)
+   ✓ Monthly payers filter
+   ✓ Dividend growers filter
+   ✓ Sector/exchange filters
+   ✓ Customizable criteria
+
+5. RISK METRICS (Tier-2 Value)
+   ✓ Implied volatility (options strategies)
+   ✓ Price volatility (VWAP)
+   ✓ Volume analysis
+
+6. HISTORICAL RESEARCH (Tier-2 Value)
+   ✓ 20+ years of price history
+   ✓ Corporate actions (splits)
+   ✓ Dividend history
+   ✓ Holdings changes
+
+================================================================================
+DATABASE READY FOR API EXPOSURE: YES
+STATUS: Production-ready with comprehensive dividend & ETF data
+SECURITY: Raw data never exposed; only presentation layer via API
+SCALABILITY: Local 10GB | Remote optimized at 50-100MB
+UNIQUENESS: 100+ data points focused on dividend & income investors
+================================================================================

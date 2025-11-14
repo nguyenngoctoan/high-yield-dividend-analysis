@@ -106,6 +106,10 @@ class YahooClient(DataSourceClient):
                             continue
 
                     if price_data:
+                        # Report success to rate limiter
+                        if hasattr(self.rate_limiter, 'report_success'):
+                            self.rate_limiter.report_success()
+
                         return {
                             'source': 'Yahoo Finance',
                             'data': price_data,
@@ -114,7 +118,19 @@ class YahooClient(DataSourceClient):
                         }
 
         except Exception as e:
-            logger.error(f"[Yahoo] Prices error for {symbol}: {e}")
+            error_msg = str(e)
+
+            # Check if it's a rate limit error
+            if 'Too Many Requests' in error_msg or '429' in error_msg or 'Rate limited' in error_msg:
+                logger.error(f"[Yahoo] Prices error for {symbol}: {e}")
+                # Report rate limit to adaptive limiter
+                if hasattr(self.rate_limiter, 'report_rate_limit'):
+                    self.rate_limiter.report_rate_limit()
+            else:
+                logger.error(f"[Yahoo] Prices error for {symbol}: {e}")
+                # Report general error
+                if hasattr(self.rate_limiter, 'report_error'):
+                    self.rate_limiter.report_error()
 
         return None
 
@@ -151,6 +167,10 @@ class YahooClient(DataSourceClient):
                             'label': f"{date_idx.strftime('%B %d, %y')}"
                         })
 
+                    # Report success to rate limiter
+                    if hasattr(self.rate_limiter, 'report_success'):
+                        self.rate_limiter.report_success()
+
                     return {
                         'source': 'Yahoo Finance',
                         'data': dividend_data,
@@ -158,7 +178,19 @@ class YahooClient(DataSourceClient):
                     }
 
         except Exception as e:
-            logger.error(f"[Yahoo] Dividends error for {symbol}: {e}")
+            error_msg = str(e)
+
+            # Check if it's a rate limit error
+            if 'Too Many Requests' in error_msg or '429' in error_msg or 'Rate limited' in error_msg:
+                logger.error(f"[Yahoo] Dividends error for {symbol}: {e}")
+                # Report rate limit to adaptive limiter
+                if hasattr(self.rate_limiter, 'report_rate_limit'):
+                    self.rate_limiter.report_rate_limit()
+            else:
+                logger.error(f"[Yahoo] Dividends error for {symbol}: {e}")
+                # Report general error
+                if hasattr(self.rate_limiter, 'report_error'):
+                    self.rate_limiter.report_error()
 
         return None
 
@@ -218,6 +250,10 @@ class YahooClient(DataSourceClient):
                             except:
                                 pass  # Invalid timestamp
 
+                    # Report success to rate limiter
+                    if hasattr(self.rate_limiter, 'report_success'):
+                        self.rate_limiter.report_success()
+
                     return {
                         'source': 'Yahoo Finance',
                         'symbol': symbol,
@@ -245,7 +281,19 @@ class YahooClient(DataSourceClient):
                     }
 
         except Exception as e:
-            logger.error(f"[Yahoo] Company info error for {symbol}: {e}")
+            error_msg = str(e)
+
+            # Check if it's a rate limit error
+            if 'Too Many Requests' in error_msg or '429' in error_msg or 'Rate limited' in error_msg:
+                logger.error(f"[Yahoo] Company info error for {symbol}: {e}")
+                # Report rate limit to adaptive limiter
+                if hasattr(self.rate_limiter, 'report_rate_limit'):
+                    self.rate_limiter.report_rate_limit()
+            else:
+                logger.error(f"[Yahoo] Company info error for {symbol}: {e}")
+                # Report general error
+                if hasattr(self.rate_limiter, 'report_error'):
+                    self.rate_limiter.report_error()
 
         return None
 
@@ -317,6 +365,10 @@ class YahooClient(DataSourceClient):
                                 })
 
                 if future_dividends:
+                    # Report success to rate limiter
+                    if hasattr(self.rate_limiter, 'report_success'):
+                        self.rate_limiter.report_success()
+
                     return {
                         'source': 'Yahoo Finance',
                         'data': future_dividends,
@@ -324,7 +376,19 @@ class YahooClient(DataSourceClient):
                     }
 
         except Exception as e:
-            logger.error(f"[Yahoo] Future dividends error for {symbol}: {e}")
+            error_msg = str(e)
+
+            # Check if it's a rate limit error
+            if 'Too Many Requests' in error_msg or '429' in error_msg or 'Rate limited' in error_msg:
+                logger.error(f"[Yahoo] Future dividends error for {symbol}: {e}")
+                # Report rate limit to adaptive limiter
+                if hasattr(self.rate_limiter, 'report_rate_limit'):
+                    self.rate_limiter.report_rate_limit()
+            else:
+                logger.error(f"[Yahoo] Future dividends error for {symbol}: {e}")
+                # Report general error
+                if hasattr(self.rate_limiter, 'report_error'):
+                    self.rate_limiter.report_error()
 
         return None
 

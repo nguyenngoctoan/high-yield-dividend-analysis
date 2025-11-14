@@ -170,3 +170,237 @@ async def monthly_payers_screener(
                 "code": "screener_failed"
             }}
         )
+
+
+@router.get("/screeners/dividend-aristocrats", response_model=ScreenerResponse, summary="Dividend Aristocrats screener")
+async def dividend_aristocrats_screener(
+    min_yield: float = Query(0, ge=0, description="Minimum yield %"),
+    limit: int = Query(100, ge=1, le=1000, description="Results limit")
+) -> ScreenerResponse:
+    """
+    Find Dividend Aristocrats - stocks with 25+ years of consecutive dividend increases.
+
+    These are S&P 500 companies with a track record of annually increasing dividends.
+    """
+    try:
+        supabase = get_supabase_client()
+
+        # Get all dividend-paying stocks
+        stocks_result = supabase.table('raw_stocks').select('*')\
+            .not_.is_('dividend_yield', 'null')\
+            .gte('dividend_yield', min_yield)\
+            .order('dividend_yield', desc=True)\
+            .limit(500)\
+            .execute()
+
+        results = []
+
+        # Check each stock for aristocrat status
+        for row in stocks_result.data:
+            symbol = row['symbol']
+
+            # Get dividend history
+            div_result = supabase.table('raw_dividends')\
+                .select('ex_date, amount')\
+                .eq('symbol', symbol)\
+                .order('ex_date', desc=True)\
+                .limit(100)\
+                .execute()
+
+            if not div_result.data or len(div_result.data) < 25:
+                continue
+
+            # Calculate consecutive increases
+            consecutive_increases = 0
+            prev_amount = None
+
+            for div in reversed(div_result.data):
+                if prev_amount is not None:
+                    if div['amount'] >= prev_amount:
+                        consecutive_increases += 1
+                    else:
+                        break
+                prev_amount = div['amount']
+
+            # Must have 25+ years of increases to be an aristocrat
+            if consecutive_increases >= 25:
+                result_item = ScreenerResult(
+                    symbol=symbol,
+                    company=row.get('company', symbol),
+                    yield_=row.get('dividend_yield', 0),
+                    price=row.get('price', 0),
+                    market_cap=row.get('market_cap'),
+                    payout_ratio=row.get('payout_ratio'),
+                    consecutive_years=consecutive_increases
+                )
+                results.append(result_item)
+
+                if len(results) >= limit:
+                    break
+
+        return ScreenerResponse(
+            screener="dividend_aristocrats",
+            criteria={"min_consecutive_years": 25, "min_yield": min_yield},
+            count=len(results),
+            data=results
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {
+                "type": "api_error",
+                "message": f"Failed to execute aristocrats screener: {str(e)}",
+                "code": "screener_failed"
+            }}
+        )
+
+
+@router.get("/screeners/dividend-kings", response_model=ScreenerResponse, summary="Dividend Kings screener")
+async def dividend_kings_screener(
+    min_yield: float = Query(0, ge=0, description="Minimum yield %"),
+    limit: int = Query(50, ge=1, le=500, description="Results limit")
+) -> ScreenerResponse:
+    """
+    Find Dividend Kings - elite stocks with 50+ years of consecutive dividend increases.
+
+    These are the most reliable dividend payers with half a century of increases.
+    """
+    try:
+        supabase = get_supabase_client()
+
+        # Get all dividend-paying stocks
+        stocks_result = supabase.table('raw_stocks').select('*')\
+            .not_.is_('dividend_yield', 'null')\
+            .gte('dividend_yield', min_yield)\
+            .order('dividend_yield', desc=True)\
+            .limit(500)\
+            .execute()
+
+        results = []
+
+        # Check each stock for king status
+        for row in stocks_result.data:
+            symbol = row['symbol']
+
+            # Get dividend history (need more data for kings)
+            div_result = supabase.table('raw_dividends')\
+                .select('ex_date, amount')\
+                .eq('symbol', symbol)\
+                .order('ex_date', desc=True)\
+                .limit(200)\
+                .execute()
+
+            if not div_result.data or len(div_result.data) < 50:
+                continue
+
+            # Calculate consecutive increases
+            consecutive_increases = 0
+            prev_amount = None
+
+            for div in reversed(div_result.data):
+                if prev_amount is not None:
+                    if div['amount'] >= prev_amount:
+                        consecutive_increases += 1
+                    else:
+                        break
+                prev_amount = div['amount']
+
+            # Must have 50+ years of increases to be a king
+            if consecutive_increases >= 50:
+                result_item = ScreenerResult(
+                    symbol=symbol,
+                    company=row.get('company', symbol),
+                    yield_=row.get('dividend_yield', 0),
+                    price=row.get('price', 0),
+                    market_cap=row.get('market_cap'),
+                    payout_ratio=row.get('payout_ratio'),
+                    consecutive_years=consecutive_increases
+                )
+                results.append(result_item)
+
+                if len(results) >= limit:
+                    break
+
+        return ScreenerResponse(
+            screener="dividend_kings",
+            criteria={"min_consecutive_years": 50, "min_yield": min_yield},
+            count=len(results),
+            data=results
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {
+                "type": "api_error",
+                "message": f"Failed to execute kings screener: {str(e)}",
+                "code": "screener_failed"
+            }}
+        )
+
+
+@router.get("/screeners/high-growth-dividends", response_model=ScreenerResponse, summary="High dividend growth screener")
+async def high_growth_dividends_screener(
+    min_growth: float = Query(10.0, ge=0, description="Minimum 5-year growth rate %"),
+    min_yield: float = Query(2.0, ge=0, description="Minimum current yield %"),
+    limit: int = Query(100, ge=1, le=1000, description="Results limit")
+) -> ScreenerResponse:
+    """
+    Find dividend growth stocks with strong 5-year dividend growth rates.
+
+    Focuses on companies that are consistently growing their dividends.
+    """
+    try:
+        supabase = get_supabase_client()
+
+        # Get stocks with dividend growth data
+        query = supabase.table('raw_stocks').select('*')\
+            .not_.is_('dividend_yield', 'null')\
+            .gte('dividend_yield', min_yield)\
+            .not_.is_('dividend_growth_5yr', 'null')\
+            .gte('dividend_growth_5yr', min_growth)\
+            .order('dividend_growth_5yr', desc=True)\
+            .limit(limit)
+
+        result = query.execute()
+
+        # Convert to ScreenerResult models
+        results = []
+        for row in result.data:
+            result_item = ScreenerResult(
+                symbol=row['symbol'],
+                company=row.get('company', row['symbol']),
+                yield_=row.get('dividend_yield', 0),
+                price=row.get('price', 0),
+                market_cap=row.get('market_cap'),
+                payout_ratio=row.get('payout_ratio'),
+                five_yr_growth=row.get('dividend_growth_5yr')
+            )
+            results.append(result_item)
+
+        return ScreenerResponse(
+            screener="high_growth_dividends",
+            criteria={
+                "min_5yr_growth": min_growth,
+                "min_yield": min_yield
+            },
+            count=len(results),
+            data=results
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {
+                "type": "api_error",
+                "message": f"Failed to execute growth screener: {str(e)}",
+                "code": "screener_failed"
+            }}
+        )

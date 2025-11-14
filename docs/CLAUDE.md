@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a high-yield dividend stock analysis and portfolio management system that fetches financial data, manages stock databases, and calculates portfolio performance. The system uses Supabase as the database backend and integrates with multiple financial data APIs (FMP, Yahoo Finance, Alpha Vantage).
+This is a high-yield dividend stock analysis and portfolio management system that fetches financial data, manages stock databases, and provides a comprehensive REST API for dividend investors. The system uses Supabase as the database backend and integrates with multiple financial data APIs (FMP, Yahoo Finance, Alpha Vantage).
 
 **Status**: ✅ **Fully refactored and production-ready** (October 2025)
+**API Status**: ✅ **v1.2.0 - Premium features live** (November 2025)
+**Documentation Site**: ✅ **Next.js docs site live at localhost:3000**
 
 ## Core Architecture
 
@@ -55,6 +57,182 @@ The system uses a modular pipeline with hybrid API fallback:
    - FMP: 144 concurrent requests
    - Alpha Vantage: 2 concurrent requests
    - Yahoo Finance: 3 concurrent requests
+
+## REST API (v1.2.0)
+
+### API Overview
+
+The system includes a comprehensive FastAPI-based REST API that exposes dividend data, stock fundamentals, ETF research tools, and advanced screeners. The API rivals premium services like Seeking Alpha and Simply Safe Dividends.
+
+**Base URL**: `http://localhost:8000`
+**API Version**: `v1.2.0`
+**Documentation**: `http://localhost:3000` (Next.js docs site)
+
+### Starting the API
+
+```bash
+# Start the API server
+python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+# Or with auto-reload for development
+uvicorn api.main:app --reload --port 8000
+
+# Start documentation site
+cd docs-site
+npm run dev  # Runs on http://localhost:3000
+```
+
+### API Architecture
+
+**API Structure**:
+```
+api/
+├── main.py                    # FastAPI application & routes
+├── models/
+│   └── schemas.py            # Pydantic models & validators
+├── routers/
+│   ├── stocks.py             # Stock endpoints
+│   ├── dividends.py          # Dividend endpoints
+│   ├── prices.py             # Price history & hourly data
+│   ├── screeners.py          # Pre-built screeners
+│   ├── analytics.py          # Portfolio analytics
+│   └── etfs.py               # ETF research endpoints
+└── supabase_helpers.py       # Database operations
+```
+
+**Documentation Site**:
+```
+docs-site/
+├── app/                      # Next.js 13+ App Router
+│   ├── page.tsx             # Homepage with features
+│   ├── api/                 # API documentation pages
+│   │   ├── stocks/
+│   │   ├── dividends/
+│   │   ├── prices/
+│   │   ├── screeners/
+│   │   └── analytics/
+│   ├── examples/            # Code examples
+│   ├── api-keys/            # API key management
+│   └── changelog/           # Version history
+└── components/              # Reusable React components
+```
+
+### Key API Endpoints (v1.2.0)
+
+#### Stocks & Fundamentals
+- `GET /v1/stocks` - List all stocks with filtering
+- `GET /v1/stocks/{symbol}` - Get stock details
+- `GET /v1/stocks/{symbol}/fundamentals` - **NEW** Stock fundamentals (market cap, P/E, sector)
+- `GET /v1/stocks/{symbol}/metrics` - **NEW** Dividend metrics with Aristocrat/King status
+- `GET /v1/stocks/{symbol}/splits` - **NEW** Stock split history
+
+#### Dividend Data
+- `GET /v1/dividends/{symbol}` - Dividend history
+- `GET /v1/dividends/{symbol}/upcoming` - Future dividend calendar
+- `GET /v1/dividends/calendar` - All upcoming dividends
+
+#### Price Data
+- `GET /v1/prices/{symbol}` - Price history with preset ranges (1d, 1m, ytd, max)
+- `GET /v1/prices/{symbol}/latest` - Latest price snapshot
+- `GET /v1/prices/{symbol}/hourly` - **NEW** Intraday hourly OHLCV data
+
+#### Pre-built Screeners
+- `GET /v1/screeners/high-yield` - High-yield dividend stocks
+- `GET /v1/screeners/monthly-payers` - Monthly dividend payers
+- `GET /v1/screeners/dividend-aristocrats` - **NEW** 25+ years of increases
+- `GET /v1/screeners/dividend-kings` - **NEW** 50+ years of increases
+- `GET /v1/screeners/high-growth-dividends` - **NEW** Strong 5-year growth
+
+#### ETF Research
+- `GET /v1/etfs` - List all ETFs
+- `GET /v1/etfs/{symbol}` - ETF details with AUM & expense ratio
+- `GET /v1/etfs/{symbol}/holdings` - ETF holdings composition
+- `GET /v1/etfs/strategies` - ETF strategy classifications
+
+#### Portfolio Analytics
+- `GET /v1/analytics/portfolio/income` - Income projections
+- `GET /v1/analytics/portfolio/yield` - Yield analysis
+
+### API Features (v1.2.0)
+
+**What Makes This API Premium-Grade**:
+
+1. **Dividend Aristocrat/King Identification**
+   - Instantly identify stocks with 25+ or 50+ years of consecutive increases
+   - No manual calculation needed
+   - Track consecutive years for each stock
+
+2. **Complete Fundamentals**
+   - Market capitalization, P/E ratios
+   - Payout ratios, sector/industry
+   - Employee count, IPO dates
+   - Company profiles
+
+3. **ETF Research Tools**
+   - Assets Under Management (AUM) tracking
+   - Expense ratio comparison
+   - Investment strategy classification (80+ types)
+   - Holdings composition with weights
+
+4. **Intraday Data**
+   - Hour-by-hour OHLCV data
+   - VWAP for better entry timing
+   - Volume analysis
+
+5. **Advanced Filtering**
+   - Preset date ranges (1d, 5d, 1m, 3m, 6m, ytd, 1y, 2y, 5y, max)
+   - Sort control (asc/desc)
+   - Pagination with cursors
+   - Multi-criteria screening
+
+### API Usage Examples
+
+```bash
+# Stock fundamentals
+curl "http://localhost:8000/v1/stocks/AAPL/fundamentals"
+
+# Check if stock is Dividend Aristocrat
+curl "http://localhost:8000/v1/stocks/JNJ/metrics"
+
+# Find all Dividend Aristocrats
+curl "http://localhost:8000/v1/screeners/dividend-aristocrats?limit=10"
+
+# Find Dividend Kings (50+ years)
+curl "http://localhost:8000/v1/screeners/dividend-kings?limit=10"
+
+# Get ETF details with AUM
+curl "http://localhost:8000/v1/etfs/SPY"
+
+# Hourly intraday prices
+curl "http://localhost:8000/v1/prices/AAPL/hourly"
+
+# Stock splits history
+curl "http://localhost:8000/v1/stocks/AAPL/splits"
+
+# High dividend growth stocks
+curl "http://localhost:8000/v1/screeners/high-growth-dividends?min_growth=10"
+```
+
+### API Authentication (Future)
+
+Currently open for development. Production deployment will include:
+- API key management
+- Rate limiting per key
+- Usage tracking
+- Stripe integration for monetization
+
+### API Documentation
+
+**Interactive Docs**:
+- OpenAPI/Swagger: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- Custom Docs Site: `http://localhost:3000`
+
+**Documentation Files**:
+- `NEW_ENDPOINTS_SUMMARY.md` - v1.2.0 feature overview
+- `API_ENHANCEMENTS_v1.2.0.md` - Technical implementation guide
+- `API_DESIGN_BEST_PRACTICES.md` - Design decisions
+- `DATABASE_INVENTORY.md` - Complete database schema
 
 ## Essential Commands
 
@@ -142,14 +320,47 @@ high-yield-dividend-analysis/
 │   └── processors/              # Data processing
 │       ├── price_processor.py
 │       ├── dividend_processor.py
-│       └── company_processor.py
+│       ├── company_processor.py
+│       ├── etf_processor.py
+│       └── etf_classifier.py
+│
+├── api/                         # FastAPI REST API (v1.2.0)
+│   ├── main.py                  # FastAPI app & main routes
+│   ├── models/
+│   │   └── schemas.py           # Pydantic models
+│   └── routers/
+│       ├── stocks.py            # Stock endpoints
+│       ├── dividends.py         # Dividend endpoints
+│       ├── prices.py            # Price & hourly data
+│       ├── screeners.py         # Pre-built screeners
+│       ├── analytics.py         # Portfolio analytics
+│       └── etfs.py              # ETF research
+│
+├── docs-site/                   # Next.js Documentation Site
+│   ├── app/                     # Next.js 13+ App Router
+│   │   ├── page.tsx            # Homepage
+│   │   ├── api/                # API docs pages
+│   │   │   ├── stocks/
+│   │   │   ├── dividends/
+│   │   │   ├── prices/
+│   │   │   ├── screeners/
+│   │   │   └── analytics/
+│   │   ├── examples/           # Code examples
+│   │   ├── api-keys/           # API key mgmt
+│   │   └── changelog/          # Version history
+│   ├── components/             # React components
+│   └── public/                 # Static assets
+│
+├── scripts/                     # Utility scripts
+│   ├── fetch_hourly_prices.py
+│   ├── fetch_stock_splits.py
+│   ├── cleanup_old_hourly_data.py
+│   ├── scrape_yieldmax.py
+│   └── backup_database.sh
 │
 ├── update_stock_v2.py           # Main pipeline (376 lines, 90% reduction!)
+├── daily_update_v3_parallel.sh  # Automated daily updates
 ├── portfolio_performance_calculator.py
-├── fetch_hourly_prices.py
-├── fetch_stock_splits.py
-├── cleanup_old_hourly_data.py
-├── scrape_yieldmax.py
 ├── run_all_scripts.py
 ├── run_all_projections.py
 ├── supabase_helpers.py          # Database operations
@@ -157,11 +368,17 @@ high-yield-dividend-analysis/
 │
 ├── docs/                        # All documentation
 │   ├── CLAUDE.md               # This file
+│   ├── NEW_ENDPOINTS_SUMMARY.md # API v1.2.0 overview
+│   ├── API_ENHANCEMENTS_v1.2.0.md
+│   ├── API_DESIGN_BEST_PRACTICES.md
+│   ├── DATABASE_INVENTORY.md
 │   ├── PROJECT_STRUCTURE.md
 │   ├── REFACTORING_COMPLETE.md
 │   ├── FINAL_SUMMARY.md
 │   ├── VERIFICATION_REPORT.md
-│   └── [10 more docs]
+│   ├── MART_ONLY_ARCHITECTURE.md
+│   ├── PARALLEL_OPTIMIZATION.md
+│   └── [15+ more docs]
 │
 ├── archive/                     # Archived old files
 │   ├── scripts_v1/             # Original update_stock.py (3,821 lines)
@@ -171,6 +388,7 @@ high-yield-dividend-analysis/
 │
 ├── database/                    # Database migrations
 ├── migrations/                  # SQL migrations
+│   └── create_raw_yieldmax_dividends.sql
 └── venv/                        # Virtual environment
 ```
 
@@ -388,15 +606,26 @@ Old files are preserved in `archive/` for reference:
 
 ### Documentation Files (in `docs/`)
 
+**API Documentation**:
+- `NEW_ENDPOINTS_SUMMARY.md` - API v1.2.0 feature overview
+- `API_ENHANCEMENTS_v1.2.0.md` - Technical implementation guide
+- `API_DESIGN_BEST_PRACTICES.md` - API design decisions & comparisons
+- `DATABASE_INVENTORY.md` - Complete database schema & data points
+
+**Core Documentation**:
 - `REFACTORING_COMPLETE.md` - Complete refactoring overview
 - `FINAL_SUMMARY.md` - Final achievement summary
 - `VERIFICATION_REPORT.md` - Script verification results
+- `PROJECT_STRUCTURE.md` - Project organization
+- `MART_ONLY_ARCHITECTURE.md` - Mart-only database architecture
+- `PARALLEL_OPTIMIZATION.md` - Parallel processing optimizations
+
+**Implementation Guides**:
 - `PHASE1_COMPLETE.md` - Core modules documentation
 - `PHASE2_COMPLETE.md` - Data source clients documentation
 - `PHASE3_COMPLETE.md` - Discovery & processors documentation
-- `PROJECT_STRUCTURE.md` - Project organization
 - `ETF_HOLDINGS_IMPLEMENTATION.md` - ETF holdings feature
-- `ETF_CLASSIFICATION.md` - ETF classification system
+- `ETF_CLASSIFICATION.md` - ETF classification system (80+ strategies)
 - `DAILY_AUTOMATION.md` - Daily automation setup
 - Feature-specific READMEs (AUM, IV, Stock Splits, etc.)
 
@@ -418,6 +647,42 @@ python -c "from lib.core.config import Config; print(Config.API.FMP_BASE_URL)"
 **Refactoring**: ✅ Complete (October 2025)
 **Testing**: ✅ All tests passing
 **Production**: ✅ Ready for use
-**Documentation**: ✅ Comprehensive (3,000+ lines)
+**Documentation**: ✅ Comprehensive (5,000+ lines)
+**REST API**: ✅ v1.2.0 - Premium features (November 2025)
+**Docs Site**: ✅ Next.js documentation live
+**Daily Automation**: ✅ Parallel processing with mart-only architecture
 
-The codebase is clean, modular, well-tested, and production-ready.
+### Recent Achievements (November 2025)
+
+**API v1.2.0 Release**:
+- ✅ 7 new premium endpoints
+- ✅ Dividend Aristocrat/King identification
+- ✅ Stock fundamentals & metrics
+- ✅ Hourly intraday prices with VWAP
+- ✅ ETF research with AUM tracking
+- ✅ Advanced screeners (Aristocrats, Kings, Growth)
+- ✅ Stock split history
+
+**Documentation Site**:
+- ✅ Next.js 13+ with App Router
+- ✅ Interactive API documentation
+- ✅ Code examples for all endpoints
+- ✅ Tailwind CSS styling
+- ✅ Responsive design
+
+**Database Architecture**:
+- ✅ Mart-only architecture (simplified from raw+mart)
+- ✅ 24,842 stocks & ETFs
+- ✅ 20M+ price bars (20+ years of history)
+- ✅ 686K+ dividend payments
+- ✅ Hourly intraday data
+- ✅ Stock split tracking
+- ✅ ETF holdings & strategy classification
+
+**Automation**:
+- ✅ Parallel daily updates (v3)
+- ✅ Lock file mechanism for concurrency control
+- ✅ Automatic backup system
+- ✅ Error handling & recovery
+
+The codebase is clean, modular, well-tested, production-ready, and now includes a premium-grade REST API with comprehensive documentation.

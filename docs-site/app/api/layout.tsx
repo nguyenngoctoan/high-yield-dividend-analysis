@@ -2,42 +2,46 @@
 
 import { useState } from 'react';
 import Navigation from '@/components/Navigation';
-import CodePanel from '@/components/CodePanel';
 import Header from '@/components/Header';
+import CodePanel from '@/components/CodePanel';
 
 export default function APILayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [selectedLanguage, setSelectedLanguage] = useState<'python' | 'javascript' | 'curl'>('python');
   const [currentEndpoint, setCurrentEndpoint] = useState<string>('/api/stocks');
+  const [language, setLanguage] = useState<'python' | 'javascript' | 'curl'>('python');
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
 
-      <div className="flex">
-        {/* Left Sidebar - Navigation (wider for better readability) */}
-        <aside className="hidden lg:block w-80 border-r border-gray-200 h-[calc(100vh-56px)] sticky top-14 overflow-y-auto bg-white">
-          <Navigation onEndpointChange={setCurrentEndpoint} />
-        </aside>
+      <div className="container mx-auto px-6">
+        <div className="flex gap-6">
+          {/* Left Sidebar - Navigation */}
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <div className="sticky top-20 h-[calc(100vh-88px)] overflow-y-auto border-r border-gray-200 pr-4">
+              <Navigation onEndpointChange={setCurrentEndpoint} />
+            </div>
+          </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 min-w-0">
-          <div className="max-w-4xl mx-auto px-8 py-6">
+          {/* Main Content */}
+          <main className="flex-1 min-w-0 py-8">
             {children}
-          </div>
-        </main>
+          </main>
 
-        {/* Right Sidebar - Code Examples (wider for better code readability) */}
-        <aside className="hidden xl:block w-[800px] border-l border-gray-200 h-[calc(100vh-56px)] sticky top-14 overflow-y-auto bg-white">
-          <CodePanel
-            endpoint={currentEndpoint}
-            language={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-          />
-        </aside>
+          {/* Right Sidebar - Code Examples */}
+          <aside className="hidden xl:block w-[500px] flex-shrink-0">
+            <div className="sticky top-20 h-[calc(100vh-88px)] overflow-y-auto border-l border-gray-200 pl-4">
+              <CodePanel
+                endpoint={currentEndpoint}
+                language={language}
+                onLanguageChange={setLanguage}
+              />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

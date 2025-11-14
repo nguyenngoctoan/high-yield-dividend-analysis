@@ -50,7 +50,8 @@ export default function APIReferencePage() {
                 {
                   method: 'GET',
                   path: '/dividends/calendar',
-                  description: 'Get upcoming dividend events'
+                  description: 'Get upcoming dividend events with flexible filtering',
+                  badge: 'Enhanced'
                 },
                 {
                   method: 'GET',
@@ -87,7 +88,8 @@ export default function APIReferencePage() {
                 {
                   method: 'GET',
                   path: '/prices/{symbol}',
-                  description: 'Get historical price data'
+                  description: 'Get historical price data with flexible filtering',
+                  badge: 'Enhanced'
                 },
                 {
                   method: 'GET',
@@ -132,7 +134,7 @@ export default function APIReferencePage() {
 
 function EndpointSection({ title, endpoints }: {
   title: string;
-  endpoints: Array<{ method: string; path: string; description: string }>;
+  endpoints: Array<{ method: string; path: string; description: string; badge?: string }>;
 }) {
   return (
     <div>
@@ -152,9 +154,16 @@ function EndpointSection({ title, endpoints }: {
                 {endpoint.method}
               </span>
               <div className="flex-1">
-                <code className="text-sm font-mono text-gray-900">
-                  {endpoint.path}
-                </code>
+                <div className="flex items-center gap-2">
+                  <code className="text-sm font-mono text-gray-900">
+                    {endpoint.path}
+                  </code>
+                  {endpoint.badge && (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                      {endpoint.badge}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600 mt-1">
                   {endpoint.description}
                 </p>

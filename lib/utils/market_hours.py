@@ -10,6 +10,14 @@ from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
+# Try to import market calendar for holiday detection
+try:
+    import pandas_market_calendars as mcal
+    MARKET_CALENDAR_AVAILABLE = True
+except ImportError:
+    MARKET_CALENDAR_AVAILABLE = False
+    logger.warning("⚠️  pandas-market-calendars not installed - holiday detection disabled")
+
 
 class MarketHours:
     """
@@ -31,6 +39,53 @@ class MarketHours:
 
     # Optimal update time (after market close, before EOD processing)
     OPTIMAL_UPDATE_TIME = time(22, 0)  # 10:00 PM EST
+
+    @staticmethod
+    def is_market_holiday(dt: datetime = None) -> Tuple[bool, str]:
+        """
+        Check if the given date is a US market holiday.
+
+        Uses pandas_market_calendars to check NYSE/NASDAQ holiday schedule.
+
+        Args:
+            dt: Datetime to check (default: now)
+
+        Returns:
+            Tuple of (is_holiday: bool, holiday_name: str or None)
+        """
+        dt = dt or datetime.now()
+
+        if not MARKET_CALENDAR_AVAILABLE:
+            return False, None
+
+        try:
+            # Get NYSE calendar (covers major US market holidays)
+            nyse = mcal.get_calendar('NYSE')
+
+            # Check if date is a valid trading day
+            date_str = dt.strftime('%Y-%m-%d')
+            schedule = nyse.valid_days(start_date=date_str, end_date=date_str)
+
+            if len(schedule) == 0:
+                # Not a valid trading day - could be weekend or holiday
+                # Check if it's a weekday (to distinguish holiday from weekend)
+                if dt.weekday() < 5:  # Monday-Friday
+                    # It's a weekday but not a trading day = holiday
+                    # Try to get holiday name
+                    holidays = nyse.holidays()
+                    for holiday in holidays.holidays:
+                        if holiday == dt.date():
+                            return True, holidays.rules[holidays.holidays.tolist().index(holiday)].name
+                    return True, "Market Holiday"
+                else:
+                    # It's a weekend
+                    return False, None
+
+            return False, None
+
+        except Exception as e:
+            logger.debug(f"⚠️  Holiday check failed: {e}")
+            return False, None
 
     @staticmethod
     def is_weekday(dt: datetime = None) -> bool:
@@ -137,6 +192,14 @@ class MarketHours:
         current_time = dt.time()
         day_name = dt.strftime('%A')
 
+        # Holiday check
+        is_holiday, holiday_name = MarketHours.is_market_holiday(dt)
+        if is_holiday:
+            if holiday_name:
+                return False, f"Market Holiday ({holiday_name}) - markets closed"
+            else:
+                return False, f"Market Holiday - markets closed"
+
         # Weekend check
         if not allow_weekends and MarketHours.is_weekend(dt):
             return False, f"Weekend ({day_name}) - markets closed"
@@ -178,6 +241,13 @@ class MarketHours:
             Status string (e.g., "Market Open", "Market Closed", "Pre-Market", etc.)
         """
         dt = dt or datetime.now()
+
+        # Check for holiday first
+        is_holiday, holiday_name = MarketHours.is_market_holiday(dt)
+        if is_holiday:
+            if holiday_name:
+                return f"Market Holiday ({holiday_name}) - Closed"
+            return "Market Holiday - Closed"
 
         if MarketHours.is_weekend(dt):
             return "Weekend - Markets Closed"

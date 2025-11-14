@@ -244,6 +244,128 @@ class PriceProcessor:
             self.stats.add_error(f"{symbol}: {str(e)}")
             return False
 
+    def process_batch_with_eod(self, symbols: List[str],
+                              from_date: Optional[date] = None,
+                              use_batch_eod: bool = True,
+                              batch_eod_days: int = 30) -> Dict[str, bool]:
+        """
+        Process prices using batch EOD for recent data + individual calls for older data.
+
+        This is a hybrid approach that:
+        1. Uses batch EOD API for the last N days (very fast - 1 call per day)
+        2. Falls back to individual symbol calls for older historical data
+
+        Args:
+            symbols: List of symbols to process
+            from_date: Optional start date (if None, uses incremental logic)
+            use_batch_eod: Whether to use batch EOD optimization (default: True)
+            batch_eod_days: Number of recent days to fetch via batch EOD (default: 30)
+
+        Returns:
+            Dictionary mapping symbol -> success status
+        """
+        from datetime import timedelta
+        from collections import defaultdict
+
+        logger.info(f"📊 Processing prices for {len(symbols)} symbols (batch EOD optimization)")
+
+        results = {}
+        today = datetime.now().date()
+
+        # Try batch EOD for recent data if enabled
+        batch_eod_data = defaultdict(list)  # symbol -> [price_records]
+
+        if use_batch_eod:
+            logger.info(f"⚡ Fetching batch EOD for last {batch_eod_days} days...")
+
+            # Fetch batch EOD for each day in the range
+            batch_start_date = today - timedelta(days=batch_eod_days)
+
+            for day_offset in range(batch_eod_days + 1):
+                target_date = batch_start_date + timedelta(days=day_offset)
+
+                # Skip weekends (simple check)
+                if target_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                    continue
+
+                # Fetch batch EOD for this date
+                eod_data = self.fmp_client.fetch_batch_eod_prices(target_date)
+
+                if eod_data and eod_data.get('data'):
+                    # Extract data for our symbols
+                    for symbol in symbols:
+                        if symbol in eod_data['data']:
+                            batch_eod_data[symbol].append(eod_data['data'][symbol])
+
+                    logger.debug(f"   ✅ {target_date}: {eod_data['count']:,} symbols")
+                else:
+                    # Batch EOD not available (not on Professional/Enterprise plan)
+                    logger.info("⚠️  Batch EOD not available - falling back to individual calls")
+                    use_batch_eod = False
+                    break
+
+            if use_batch_eod:
+                symbols_with_eod = len([s for s in symbols if batch_eod_data[s]])
+                logger.info(f"✅ Batch EOD complete: {symbols_with_eod}/{len(symbols)} symbols have recent data")
+
+        # Now process symbols
+        # For symbols with batch EOD data, store it first, then fetch older historical if needed
+        # For symbols without batch EOD data, use regular individual processing
+
+        self.stats.start()
+
+        for symbol in symbols:
+            try:
+                # Check if we have batch EOD data for this symbol
+                if batch_eod_data[symbol]:
+                    # Store batch EOD data
+                    price_records = []
+                    for eod_record in batch_eod_data[symbol]:
+                        try:
+                            price = StockPrice(
+                                symbol=symbol,
+                                date=datetime.strptime(eod_record['date'], '%Y-%m-%d').date(),
+                                open=eod_record.get('open'),
+                                high=eod_record.get('high'),
+                                low=eod_record.get('low'),
+                                close=eod_record.get('close'),
+                                adj_close=eod_record.get('adjClose'),
+                                volume=eod_record.get('volume')
+                            )
+                            if price.is_valid:
+                                price_records.append(price.to_dict())
+                        except Exception as e:
+                            logger.debug(f"⚠️  {symbol}: Skipping invalid EOD record - {e}")
+
+                    if price_records:
+                        result = supabase_batch_upsert(
+                            'raw_stock_prices',
+                            price_records,
+                            batch_size=Config.DATABASE.UPSERT_BATCH_SIZE
+                        )
+                        if result:
+                            logger.info(f"✅ {symbol}: Stored {len(price_records)} EOD prices (batch)")
+                            results[symbol] = True
+                            self.stats.successful += 1
+                        else:
+                            results[symbol] = False
+                            self.stats.failed += 1
+                    else:
+                        results[symbol] = False
+                        self.stats.failed += 1
+                else:
+                    # No batch EOD data - use regular processing
+                    success = self.process_and_store(symbol, from_date=from_date)
+                    results[symbol] = success
+
+            except Exception as e:
+                logger.error(f"❌ {symbol}: Error - {e}")
+                results[symbol] = False
+                self.stats.failed += 1
+
+        self.stats.complete()
+        return results
+
     def process_batch(self, symbols: List[str],
                      from_date: Optional[date] = None,
                      use_hybrid: bool = True,
@@ -279,6 +401,51 @@ class PriceProcessor:
                         logger.info(f"⏭️  Skipping {skipped} already-excluded symbols (saves ~{skipped * 2}s)")
             except Exception as e:
                 logger.debug(f"⚠️  Could not check excluded symbols: {e}")
+
+        # Batch quote filter: Skip symbols with no price change today
+        # Only use if no from_date specified (daily update mode)
+        if from_date is None and Config.DATA_FETCH.USE_BATCH_QUOTE_FILTER:
+            try:
+                logger.info(f"⚡ Checking {len(symbols):,} symbols for price changes via batch quote...")
+
+                # Fetch batch quotes in chunks of 500
+                changed_symbols = []
+                unchanged_symbols = []
+
+                for i in range(0, len(symbols), 500):
+                    batch = symbols[i:i+500]
+                    quotes = self.fmp_client.fetch_batch_quote(batch)
+
+                    if quotes:
+                        for symbol in batch:
+                            if symbol in quotes:
+                                quote = quotes[symbol]
+                                # Check if price changed (change != 0 or changesPercentage != 0)
+                                price_change = quote.get('change', 0)
+                                pct_change = quote.get('changesPercentage', 0)
+
+                                if price_change != 0 or pct_change != 0:
+                                    changed_symbols.append(symbol)
+                                else:
+                                    unchanged_symbols.append(symbol)
+                            else:
+                                # Symbol not in quote response, process it anyway
+                                changed_symbols.append(symbol)
+                    else:
+                        # Batch quote failed, process all symbols
+                        changed_symbols.extend(batch)
+
+                if unchanged_symbols:
+                    logger.info(
+                        f"⚡ BATCH QUOTE FILTER: {len(changed_symbols):,} symbols changed, "
+                        f"skipping {len(unchanged_symbols):,} unchanged symbols"
+                    )
+                    symbols = changed_symbols
+                else:
+                    logger.info(f"⚡ All {len(symbols):,} symbols have price changes")
+
+            except Exception as e:
+                logger.warning(f"⚠️  Batch quote filter failed: {e}, processing all symbols")
 
         self.stats.start()
         logger.info(f"📊 Processing prices for {len(symbols)} symbols with {max_workers} workers")

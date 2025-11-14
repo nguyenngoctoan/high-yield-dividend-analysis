@@ -12,16 +12,19 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">D</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">Dividend API</span>
+            <span className="text-xl font-bold text-gray-900">Divv</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link href="/api" className="text-gray-600 hover:text-gray-900 transition-colors">
               Documentation
+            </Link>
+            <Link href="/examples" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Examples
             </Link>
             <Link href="/api-reference" className="text-gray-600 hover:text-gray-900 transition-colors">
               API Reference
@@ -85,6 +88,13 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Documentation
+              </Link>
+              <Link
+                href="/examples"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Examples
               </Link>
               <Link
                 href="/api-reference"

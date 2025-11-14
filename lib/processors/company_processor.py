@@ -207,6 +207,50 @@ class CompanyProcessor:
         Returns:
             Dictionary mapping symbol -> success status
         """
+        # Company data caching: Only refresh stale company data
+        original_count = len(symbols)
+        if Config.DATA_FETCH.CACHE_COMPANY_DATA:
+            from datetime import datetime, timedelta
+            from supabase_helpers import get_supabase_client
+
+            try:
+                cache_days = Config.DATA_FETCH.COMPANY_CACHE_DAYS
+                cutoff_date = datetime.now() - timedelta(days=cache_days)
+
+                logger.info(f"⚡ Checking company data cache ({cache_days} day threshold)...")
+
+                # Get symbols with recent company updates (within cache period)
+                # We want symbols where:
+                # 1. company IS NOT NULL (has company data)
+                # 2. updated_at is recent (within cache period)
+                supabase = get_supabase_client()
+
+                # Query for symbols with recent company data
+                result = supabase.table('raw_stocks') \
+                    .select('symbol, updated_at') \
+                    .not_.is_('company', 'null') \
+                    .gte('updated_at', cutoff_date.isoformat()) \
+                    .in_('symbol', symbols) \
+                    .execute()
+
+                if result.data:
+                    # These symbols have recent company data - skip them
+                    recent_symbols = {r['symbol'] for r in result.data}
+                    symbols = [s for s in symbols if s not in recent_symbols]
+
+                    skipped = original_count - len(symbols)
+                    if skipped > 0:
+                        logger.info(
+                            f"⚡ COMPANY CACHE: Skipping {skipped:,} symbols with recent data "
+                            f"(processing {len(symbols):,} stale/new symbols)"
+                        )
+                        logger.info(f"   Time saved: ~{skipped * 0.5:.0f}s (estimated)")
+                else:
+                    logger.info(f"⚡ No cached company data found, processing all {len(symbols):,} symbols")
+
+            except Exception as e:
+                logger.warning(f"⚠️  Company cache check failed: {e}, processing all symbols")
+
         self.stats.start()
         logger.info(f"🏢 Processing company info for {len(symbols)} symbols")
 

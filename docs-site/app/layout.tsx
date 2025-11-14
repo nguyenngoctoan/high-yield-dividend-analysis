@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dividend API Documentation",
-  description: "Production-grade API for dividend investors",
+  title: "Divv API Documentation",
+  description: "Production-grade dividend data API for investors and developers",
 };
 
 export default function RootLayout({

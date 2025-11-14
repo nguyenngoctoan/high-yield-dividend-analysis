@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0, '/Users/toan/dev/high-yield-dividend-analysis')
 
 from supabase_helpers import get_supabase_client
+from lib.core.config import Config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,49 +20,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# International exchange suffixes to remove
-# Note: .TO (TSX) and .V (TSXV) are Canadian exchanges and will be KEPT
-INTERNATIONAL_SUFFIXES = [
-    '.L',     # London Stock Exchange (LSE)
-    '.AX',    # Australian Securities Exchange (ASX)
-    '.DE',    # Deutsche Börse XETRA
-    '.AS',    # Euronext Amsterdam (AMS)
-    '.MI',    # Borsa Italiana (MIL)
-    '.PA',    # Euronext Paris
-    '.SW',    # Swiss Exchange (SIX)
-    '.HK',    # Hong Kong Stock Exchange (HKSE)
-    '.BR',    # Euronext Brussels
-    '.LS',    # Euronext Lisbon
-    '.MC',    # Bolsa de Madrid
-    '.CO',    # OMX Copenhagen
-    '.ST',    # OMX Stockholm
-    '.OL',    # Oslo Børs
-    '.HE',    # Helsinki Stock Exchange
-    '.IC',    # NASDAQ Iceland
-    '.VI',    # Vienna Stock Exchange
-    '.AT',    # Athens Stock Exchange
-    '.WA',    # Warsaw Stock Exchange
-    '.PR',    # Prague Stock Exchange
-    '.BD',    # Budapest Stock Exchange
-    '.SA',    # Bovespa (Brazil)
-    '.MX',    # Mexican Stock Exchange
-    '.JK',    # Jakarta Stock Exchange
-    '.KL',    # Bursa Malaysia
-    '.SI',    # Singapore Exchange
-    '.BK',    # Stock Exchange of Thailand
-    '.TW',    # Taiwan Stock Exchange
-    '.KS',    # Korea Stock Exchange
-    '.KQ',    # KOSDAQ
-    '.T',     # Tokyo Stock Exchange
-    '.F',     # Frankfurt Stock Exchange
-    '.NZ',    # New Zealand Stock Exchange
-    '.JO',    # Johannesburg Stock Exchange
-    '.SG',    # Singapore (alternative)
-    '.BO',    # Bombay Stock Exchange
-    '.NS',    # National Stock Exchange of India
-    '.NE',    # NYSE Euronext
-    '.ME',    # Moscow Exchange
-]
+# Use centralized international exchange suffixes from config
+INTERNATIONAL_SUFFIXES = Config.EXCHANGE.BLOCKED_SUFFIXES
 
 # Tables that contain stock symbols
 TABLES_TO_CLEAN = [

@@ -10,11 +10,77 @@ from datetime import datetime
 
 from api.models.schemas import (
     ETFHoldingsResponse, ETFHolding, ETFClassification,
-    ETFStrategyDetails
+    ETFStrategyDetails, ETFDetails
 )
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
+
+
+@router.get("/etfs/{symbol}", response_model=ETFDetails, summary="Get ETF details")
+async def get_etf_details(
+    symbol: str = Path(..., description="ETF symbol")
+) -> ETFDetails:
+    """
+    Get comprehensive ETF information.
+
+    Returns detailed ETF metrics including AUM, expense ratio, strategy, and holdings count.
+    """
+    try:
+        supabase = get_supabase_client()
+
+        # Fetch ETF info
+        etf_result = supabase.table('raw_stocks').select('*')\
+            .eq('symbol', symbol.upper())\
+            .eq('type', 'etf')\
+            .execute()
+
+        if not etf_result.data:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": {
+                    "type": "resource_not_found_error",
+                    "message": f"ETF '{symbol}' not found",
+                    "param": "symbol",
+                    "code": "etf_not_found"
+                }}
+            )
+
+        etf = etf_result.data[0]
+
+        # Get holdings count
+        holdings_result = supabase.table('raw_etf_holdings').select('*', count='exact')\
+            .eq('etf_symbol', symbol.upper())\
+            .execute()
+
+        # Calculate AUM in millions
+        aum = etf.get('aum')
+        aum_millions = round(aum / 1_000_000, 2) if aum else None
+
+        return ETFDetails(
+            symbol=etf['symbol'],
+            name=etf.get('company', etf['symbol']),
+            expense_ratio=etf.get('expense_ratio'),
+            aum=aum,
+            aum_millions=aum_millions,
+            investment_strategy=etf.get('investment_strategy'),
+            related_stock=etf.get('related_stock'),
+            dividend_yield=etf.get('dividend_yield'),
+            holdings_count=holdings_result.count if holdings_result.count else None,
+            holdings_updated_at=etf.get('holdings_updated_at')
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {
+                "type": "api_error",
+                "message": f"Failed to fetch ETF details: {str(e)}",
+                "code": "fetch_failed"
+            }}
+        )
 
 
 @router.get("/etfs/{symbol}/holdings", response_model=ETFHoldingsResponse, summary="Get ETF holdings")

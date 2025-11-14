@@ -26,11 +26,11 @@ class APIConfig:
     ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
 
     # Rate Limiting Configuration
-    # FMP Professional Plan: 750 requests/min (25 req/sec)
+    # FMP Professional Plan: 750 requests/min (12.5 req/sec)
     # https://site.financialmodelingprep.com/pricing-plans
-    FMP_CONCURRENT_REQUESTS = 18  # Increased from 6 to 18 for maximum throughput (3x boost)
+    FMP_CONCURRENT_REQUESTS = 400  # 400 concurrent to maximize 750 req/min limit (80% utilization = 600 req/min)
     ALPHA_VANTAGE_CONCURRENT_REQUESTS = 6  # Increased from 2 to 6 (3x boost)
-    YAHOO_CONCURRENT_REQUESTS = 9  # Increased from 3 to 9 (3x boost)
+    YAHOO_CONCURRENT_REQUESTS = 3  # Conservative to avoid rate limiting (Yahoo is free tier)
 
     # Request Timeouts
     REQUEST_TIMEOUT = 30  # seconds
@@ -65,7 +65,12 @@ class DatabaseConfig:
 
     # Batch Processing
     BATCH_SIZE = 20
-    UPSERT_BATCH_SIZE = 250  # Reduced from 1000 to prevent Supabase connection exhaustion
+    UPSERT_BATCH_SIZE = 1000  # AGGRESSIVE: Increased from 500 to 1000 for max throughput
+
+    # Aggressive Mode Settings (for maximum throughput)
+    AGGRESSIVE_MODE = True  # Enable aggressive batching and reduced I/O
+    AGGRESSIVE_BATCH_SIZE = 2000  # Batch writes even more aggressively
+    REDUCE_LOGGING = True  # Reduce per-symbol logging for less I/O
 
     @classmethod
     def validate(cls):
@@ -86,6 +91,15 @@ class ExchangeConfig:
         "TSX", "TSXV", "CSE", "TSE"  # Canadian exchanges
     ]
 
+    # International exchange suffixes to block
+    BLOCKED_SUFFIXES = [
+        '.L', '.AX', '.DE', '.AS', '.MI', '.PA', '.SW', '.HK', '.BR',
+        '.LS', '.MC', '.CO', '.ST', '.OL', '.HE', '.IC', '.VI', '.AT',
+        '.WA', '.PR', '.BD', '.SA', '.MX', '.JK', '.KL', '.SI', '.BK',
+        '.TW', '.KS', '.KQ', '.T', '.F', '.NZ', '.JO', '.SG', '.BO',
+        '.NS', '.NE', '.ME'
+    ]
+
     # Exchange Filtering
     NASDAQ_ONLY = False  # Controlled by command-line argument
 
@@ -95,6 +109,39 @@ class ExchangeConfig:
         if not exchange:
             return False
         return exchange.upper() in cls.ALLOWED_EXCHANGES
+
+    @classmethod
+    def is_international_symbol(cls, symbol):
+        """Check if symbol has international exchange suffix."""
+        if not symbol:
+            return False
+        symbol_upper = symbol.upper()
+        return any(symbol_upper.endswith(suffix.upper()) for suffix in cls.BLOCKED_SUFFIXES)
+
+    @classmethod
+    def is_allowed_symbol(cls, symbol, exchange=None):
+        """
+        Check if symbol is allowed (not international and from allowed exchange).
+
+        Args:
+            symbol: Stock symbol to check
+            exchange: Optional exchange name
+
+        Returns:
+            True if symbol is allowed, False otherwise
+        """
+        if not symbol:
+            return False
+
+        # Block international symbols by suffix
+        if cls.is_international_symbol(symbol):
+            return False
+
+        # If exchange provided, check it too
+        if exchange and not cls.is_allowed_exchange(exchange):
+            return False
+
+        return True
 
     @classmethod
     def filter_by_exchange(cls, symbols_data):
@@ -117,6 +164,15 @@ class DataFetchConfig:
     USE_HYBRID_DIVIDENDS = True  # Enable hybrid dividend fetching
     USE_HYBRID_PRICES = False    # Keep FMP primary for prices (excellent coverage)
     FALLBACK_TO_YAHOO = True     # Enable Yahoo Finance fallback
+
+    # Batch EOD Optimization (Professional/Enterprise plans only)
+    USE_BATCH_EOD = True         # Use batch EOD API for recent data (30 days)
+    BATCH_EOD_DAYS = 30          # Number of recent days to fetch via batch EOD
+    FILTER_DIVIDEND_SYMBOLS = True  # Only fetch dividends for known dividend-paying symbols
+    USE_BATCH_QUOTE_FILTER = True  # Use batch quote to skip symbols with no price change
+    CACHE_COMPANY_DATA = True     # Cache company data with 90-day refresh cycle
+    COMPANY_CACHE_DAYS = 90       # Days before refreshing company data
+    PRIORITIZE_SYMBOLS = True     # Process high-priority symbols first (volume, market cap)
 
     # Validation Thresholds
     MIN_PRICE_THRESHOLD = 0.01  # Minimum valid price

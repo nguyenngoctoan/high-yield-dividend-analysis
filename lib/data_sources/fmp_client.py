@@ -118,6 +118,128 @@ class FMPClient(DataSourceClient):
 
         return None
 
+    def fetch_batch_eod_prices(self, target_date: date) -> Optional[Dict[str, Any]]:
+        """
+        Fetch batch end-of-day prices for ALL symbols on a specific date.
+
+        This is much more efficient than fetching prices for each symbol individually.
+        Returns data in CSV format from FMP's v4 API.
+
+        Note: Only available on Professional and Enterprise plans.
+
+        Args:
+            target_date: The date to fetch EOD prices for
+
+        Returns:
+            Dictionary with parsed EOD data:
+            {
+                'source': 'FMP_BATCH_EOD',
+                'date': date string,
+                'data': {symbol: price_data_dict},
+                'count': number of symbols
+            }
+
+            Or None if the endpoint is not available or request fails.
+        """
+        try:
+            import csv
+            from io import StringIO
+
+            date_str = target_date.strftime('%Y-%m-%d')
+            url = (
+                f"{self.BASE_URL}/api/v4/batch-request-end-of-day-prices"
+                f"?date={date_str}&apikey={self.api_key}"
+            )
+
+            logger.debug(f"[FMP] Fetching batch EOD prices for {date_str}")
+
+            # Fetch CSV data using base client retry logic
+            data = self._fetch_with_retry(url)
+
+            if not data:
+                logger.warning(f"[FMP] Batch EOD not available for {date_str}")
+                return None
+
+            # Parse CSV data
+            # FMP batch EOD returns CSV text, convert to string for parsing
+            csv_text = data if isinstance(data, str) else str(data)
+            csv_data = StringIO(csv_text)
+            reader = csv.DictReader(csv_data)
+
+            # Convert to dictionary keyed by symbol
+            eod_data = {}
+            for row in reader:
+                symbol = row.get('symbol')
+                if symbol:
+                    # Parse the row data
+                    eod_data[symbol] = {
+                        'date': date_str,
+                        'open': float(row.get('open', 0)) if row.get('open') else None,
+                        'high': float(row.get('high', 0)) if row.get('high') else None,
+                        'low': float(row.get('low', 0)) if row.get('low') else None,
+                        'close': float(row.get('close', 0)) if row.get('close') else None,
+                        'volume': int(row.get('volume', 0)) if row.get('volume') else None,
+                        'adjClose': float(row.get('adjClose', 0)) if row.get('adjClose') else None,
+                    }
+
+            logger.info(f"[FMP] ✅ Batch EOD for {date_str}: {len(eod_data):,} symbols")
+
+            return {
+                'source': 'FMP_BATCH_EOD',
+                'date': date_str,
+                'data': eod_data,
+                'count': len(eod_data)
+            }
+
+        except Exception as e:
+            logger.debug(f"[FMP] Batch EOD failed for {target_date}: {e}")
+            # This is expected if not on Professional/Enterprise plan
+            return None
+
+    def fetch_batch_quote(self, symbols: List[str]) -> Optional[Dict[str, Any]]:
+        """
+        Fetch real-time quotes for multiple symbols in a single API call.
+
+        This is used to determine which symbols have changed today without
+        fetching full historical data.
+
+        Args:
+            symbols: List of symbols (max 500 per request recommended)
+
+        Returns:
+            Dictionary mapping symbol -> quote data:
+            {
+                'AAPL': {'symbol': 'AAPL', 'price': 150.0, 'change': 2.5, 'changesPercentage': 1.69, ...},
+                'MSFT': {'symbol': 'MSFT', 'price': 380.0, 'change': 0.0, 'changesPercentage': 0.0, ...},
+                ...
+            }
+
+        API Endpoint: /api/v3/quote/{symbols}
+        """
+        try:
+            # Batch quotes endpoint supports comma-separated symbols
+            # Limit to 500 symbols per request to avoid URL length issues
+            if len(symbols) > 500:
+                logger.warning(f"[FMP] Batch quote limited to 500 symbols, got {len(symbols)}")
+                symbols = symbols[:500]
+
+            symbols_str = ','.join(symbols)
+            url = f"{self.BASE_URL}/api/v3/quote/{symbols_str}?apikey={self.api_key}"
+
+            logger.debug(f"[FMP] Fetching batch quote for {len(symbols)} symbols")
+            data = self._fetch_with_retry(url)
+
+            if data and isinstance(data, list):
+                # Convert list to dictionary keyed by symbol
+                quote_dict = {item['symbol']: item for item in data if 'symbol' in item}
+                logger.debug(f"[FMP] ✅ Batch quote: {len(quote_dict)} symbols")
+                return quote_dict
+
+        except Exception as e:
+            logger.error(f"[FMP] Batch quote error: {e}")
+
+        return None
+
     def fetch_dividends(self, symbol: str, from_date: Optional[date] = None) -> Optional[Dict[str, Any]]:
         """
         Fetch historical dividend data from FMP.
@@ -292,15 +414,17 @@ class FMPClient(DataSourceClient):
                     symbol = item.get('symbol', '').strip()
                     exchange = item.get('exchangeShortName', '')
 
+                    # Filter by both exchange and symbol suffix
                     if symbol and exchange in allowed_exchanges:
-                        symbols.append({
-                            'symbol': symbol,
-                            'name': item.get('name', ''),
-                            'source': f'FMP-{exchange}',
-                            'exchange': exchange,
-                            'price': item.get('price'),
-                            'type': 'STOCK'
-                        })
+                        if Config.EXCHANGE.is_allowed_symbol(symbol, exchange):
+                            symbols.append({
+                                'symbol': symbol,
+                                'name': item.get('name', ''),
+                                'source': f'FMP-{exchange}',
+                                'exchange': exchange,
+                                'price': item.get('price'),
+                                'type': 'STOCK'
+                            })
 
                 logger.info(f"[FMP] Discovered {len(symbols)} symbols from allowed exchanges")
             else:
@@ -333,13 +457,15 @@ class FMPClient(DataSourceClient):
                     symbol = etf.get('symbol', '').strip()
                     name = etf.get('name', '')
 
+                    # Filter out international symbols
                     if symbol and name:
-                        symbols.append({
-                            'symbol': symbol,
-                            'name': name,
-                            'source': 'FMP-ETF-LIST',
-                            'type': 'ETF'
-                        })
+                        if Config.EXCHANGE.is_allowed_symbol(symbol):
+                            symbols.append({
+                                'symbol': symbol,
+                                'name': name,
+                                'source': 'FMP-ETF-LIST',
+                                'type': 'ETF'
+                            })
 
                 logger.info(f"[FMP] Discovered {len(symbols)} ETFs from comprehensive list")
             else:
@@ -390,14 +516,16 @@ class FMPClient(DataSourceClient):
                     exchange = stock.get('exchangeShortName', '')
                     dividend_yield = stock.get('dividendYield', 0)
 
+                    # Filter by both exchange and symbol suffix
                     if symbol and exchange in allowed_exchanges and dividend_yield > 0:
-                        symbols.append({
-                            'symbol': symbol,
-                            'name': name,
-                            'source': f'FMP-DIV-{exchange}',
-                            'exchange': exchange,
-                            'dividend_yield': dividend_yield
-                        })
+                        if Config.EXCHANGE.is_allowed_symbol(symbol, exchange):
+                            symbols.append({
+                                'symbol': symbol,
+                                'name': name,
+                                'source': f'FMP-DIV-{exchange}',
+                                'exchange': exchange,
+                                'dividend_yield': dividend_yield
+                            })
 
                 logger.info(f"[FMP] Discovered {len(symbols)} dividend stocks")
             else:

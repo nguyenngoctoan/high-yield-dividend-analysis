@@ -27,6 +27,11 @@ Complete documentation for the High-Yield Dividend Analysis & Portfolio Manageme
 - **[AUM Tracking](AUM_TRACKING.md)** - Assets Under Management
 - **[Auto Exclusion](AUTO_EXCLUSION.md)** - Symbol exclusion
 - **[Daily Automation](DAILY_AUTOMATION.md)** - Automated updates
+- **[Optimization Guide](OPTIMIZATION_GUIDE.md)** - Performance optimization
+- **[Parallel Optimization](PARALLEL_OPTIMIZATION.md)** - Parallel processing
+- **[Optimization Quick Start](OPTIMIZATION_QUICK_START.md)** - Quick optimization guide
+- **[Discovery Optimization](DISCOVERY_OPTIMIZATION.md)** - Symbol discovery optimization
+- **[Discovery Data Sources](DISCOVERY_DATA_SOURCES.md)** - Data source configurations
 
 ## 🌐 REST API
 
@@ -52,6 +57,34 @@ Complete documentation for the High-Yield Dividend Analysis & Portfolio Manageme
 - [ETF Classification Implementation](ETF_CLASSIFICATION_IMPLEMENTATION.md)
 - [Auth Rate Limit Implementation](AUTH_RATE_LIMIT_IMPLEMENTATION.md)
 
+## 📝 Changelogs & Implementation Notes
+
+### Changelogs
+- **[Main Changelog](../CHANGELOG.md)** - Project changelog
+- **[API Enhancements Changelog](changelogs/API_ENHANCEMENTS_CHANGELOG.md)** - API version history
+- **[API Enhancements v1.2.0](changelogs/API_ENHANCEMENTS_v1.2.0.md)** - Latest API features
+
+### Implementation Notes
+- **[Batch EOD Implementation](implementation-notes/BATCH_EOD_IMPLEMENTATION.md)** - Batch processing
+- **[Batch Processing Analysis](implementation-notes/BATCH_PROCESSING_ANALYSIS.md)** - Analysis
+- **[Critical Optimizations](implementation-notes/CRITICAL_OPTIMIZATIONS_IMPLEMENTED.md)** - Performance improvements
+- **[Phase 2 Optimizations](implementation-notes/PHASE_2_OPTIMIZATIONS_IMPLEMENTED.md)** - Additional optimizations
+- **[International Symbols Fix](implementation-notes/INTERNATIONAL_SYMBOLS_FIX.md)** - Symbol filtering
+
+## 🔧 Optimization Resources
+
+### Performance Analysis
+- **[Batch Quote Mode Summary](optimization/BATCH_QUOTE_MODE_SUMMARY.md)** - Batch processing performance
+- **[Advanced Optimizations](optimization/ADVANCED_OPTIMIZATIONS.md)** - Advanced optimization techniques
+- **[Optimization Complete Summary](optimization/OPTIMIZATION_COMPLETE_SUMMARY.md)** - Complete optimization overview
+- **[Throughput Analysis](optimization/THROUGHPUT_ANALYSIS.md)** - Performance throughput analysis
+- **[Ultrathink Daily Sync](ULTRATHINK_DAILY_SYNC_OPTIMIZATION.md)** - Daily sync optimizations
+
+### Reference Data
+- **[Data Points Reference](reference/DATA_POINTS_REFERENCE.csv)** - Available data points
+- **[API Data Summary](reference/API_DATA_SUMMARY.txt)** - API data coverage
+- **[Optimization Status](reference/OPTIMIZATION_STATUS.txt)** - Current optimization status
+
 ### Complete List (Alphabetical)
 - ADJ_CLOSE_README.md
 - API_ARCHITECTURE.md
@@ -63,25 +96,35 @@ Complete documentation for the High-Yield Dividend Analysis & Portfolio Manageme
 - CLAUDE.md
 - COVERED_CALL_ETF_IV_GUIDE.md
 - DAILY_AUTOMATION.md
+- DATABASE_INVENTORY.md
 - DATA_SOURCE_TRACKING.md
+- DISCOVERY_DATA_SOURCES.md
+- DISCOVERY_OPTIMIZATION.md
+- DIVV_FUNCTIONS_QUICK_REFERENCE.md
 - ETF_CLASSIFICATION.md
 - ETF_CLASSIFICATION_IMPLEMENTATION.md
 - ETF_HOLDINGS_IMPLEMENTATION.md
+- HOLDINGS_HISTORY.md
 - IMPLIED_VOLATILITY_DATA_SOURCES.md
 - INVESTOR_API_ENDPOINTS.md
 - IV_IMPLEMENTATION.md
 - IV_IMPLEMENTATION_SUMMARY.md
 - IV_QUICK_REFERENCE.md
-- LOCK_MECHANISM.md
-- MART_ONLY_ARCHITECTURE.md
+- METRICS_CALCULATION.md
 - OPTIMIZATION_GUIDE.md
+- OPTIMIZATION_QUICK_REFERENCE.md
+- OPTIMIZATION_QUICK_START.md
+- OPTIMIZATION_RECOMMENDATIONS.md
 - PARALLEL_OPTIMIZATION.md
+- PROJECT_STRUCTURE.md
 - QUICK_START_SOURCE_TRACKING.md
+- SPREADSHEET_ADDONS.md
 - STOCK_SPLITS_README.md
-- YIELDMAX_README.md
+- ULTRATHINK_DAILY_SYNC_OPTIMIZATION.md
 
 ---
 
-**Total**: 30+ documentation files
+**Total**: 35 core documentation files + organized subdirectories
 **Status**: Actively maintained
 **Coverage**: All features documented
+**Organization**: Structured by topic with changelogs, implementation notes, optimization resources, and reference data

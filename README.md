@@ -1,6 +1,6 @@
-# High-Yield Dividend Analysis & Portfolio Management System
+# Divv - High-Yield Dividend Analysis & Portfolio Management System
 
-A comprehensive, production-ready financial data platform with multi-source data collection, intelligent source tracking, and REST API for dividend investors.
+A comprehensive, production-ready financial data platform with multi-source data collection, intelligent source tracking, and REST API for dividend investors. **Divv API** powers dividend investing apps and spreadsheet integrations.
 
 ## 🎯 Overview
 

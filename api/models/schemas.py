@@ -91,6 +91,9 @@ class CompanyInfo(BaseModel):
     market_cap: Optional[int] = None
     employees: Optional[int] = None
     website: Optional[str] = None
+    country: Optional[str] = None
+    ipo_date: Optional[date] = None
+    currency: Optional[str] = None
 
 
 class PricingInfo(BaseModel):
@@ -102,6 +105,8 @@ class PricingInfo(BaseModel):
     volume: Optional[int] = None
     change: Optional[float] = None
     change_percent: Optional[float] = None
+    pe_ratio: Optional[float] = None
+    vwap: Optional[float] = Field(None, description="Volume-weighted average price")
 
 
 class DividendInfo(BaseModel):
@@ -426,3 +431,96 @@ def create_dividend_event_id(symbol: str, date: date) -> str:
 def create_dividend_payment_id(symbol: str, date: date) -> str:
     """Create unique dividend payment identifier."""
     return f"div_hist_{symbol.lower()}_{date.strftime('%Y%m%d')}"
+
+
+# ============================================================================
+# Fundamentals Models
+# ============================================================================
+
+class Fundamentals(BaseModel):
+    """Stock fundamentals and key metrics."""
+    object: str = "fundamentals"
+    symbol: str
+    market_cap: Optional[int] = None
+    pe_ratio: Optional[float] = None
+    payout_ratio: Optional[float] = None
+    employees: Optional[int] = None
+    ipo_date: Optional[date] = None
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+    website: Optional[str] = None
+    country: Optional[str] = None
+
+
+class DividendMetrics(BaseModel):
+    """Detailed dividend metrics and consistency."""
+    object: str = "dividend_metrics"
+    symbol: str
+    current_yield: Optional[float] = None
+    annual_amount: Optional[float] = None
+    frequency: Optional[DividendFrequency] = None
+    payout_ratio: Optional[float] = None
+    five_yr_growth_rate: Optional[float] = Field(None, alias="5yr_growth_rate")
+    consecutive_increases: Optional[int] = None
+    consecutive_payments: Optional[int] = None
+    is_dividend_aristocrat: bool = Field(default=False, description="25+ years of increases")
+    is_dividend_king: bool = Field(default=False, description="50+ years of increases")
+
+    class Config:
+        populate_by_name = True
+
+
+# ============================================================================
+# Enhanced ETF Models
+# ============================================================================
+
+class ETFDetails(BaseModel):
+    """Complete ETF information."""
+    object: str = "etf_details"
+    symbol: str
+    name: str
+    expense_ratio: Optional[float] = Field(None, description="Annual expense ratio %")
+    aum: Optional[int] = Field(None, description="Assets under management")
+    aum_millions: Optional[float] = Field(None, description="AUM in millions")
+    investment_strategy: Optional[str] = None
+    related_stock: Optional[str] = Field(None, description="Underlying stock for single-stock ETFs")
+    dividend_yield: Optional[float] = None
+    holdings_count: Optional[int] = None
+    holdings_updated_at: Optional[datetime] = None
+
+
+class HourlyPriceBar(BaseModel):
+    """Hourly price bar with timestamp."""
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    vwap: Optional[float] = None
+
+
+class HourlyPriceResponse(BaseModel):
+    """Hourly price history response."""
+    object: str = "hourly_prices"
+    symbol: str
+    date: date
+    data: List[HourlyPriceBar]
+
+
+class StockSplit(BaseModel):
+    """Stock split event."""
+    id: str
+    object: str = "stock_split"
+    symbol: str
+    date: date
+    ratio: float = Field(..., description="Split ratio (e.g., 2.0 for 2:1 split)")
+    from_factor: Optional[int] = None
+    to_factor: Optional[int] = None
+
+
+class SplitHistoryResponse(BaseModel):
+    """Stock split history response."""
+    object: str = "split_history"
+    symbol: str
+    data: List[StockSplit]
