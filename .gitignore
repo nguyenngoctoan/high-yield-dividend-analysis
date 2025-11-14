@@ -47,3 +47,5 @@ backups/
 # Test outputs
 test_archive/
 archive/logs/
+docs-site/node_modules/
+docs-site/.next/

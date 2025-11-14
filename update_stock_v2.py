@@ -27,6 +27,8 @@ from lib.processors.dividend_processor import DividendProcessor
 from lib.processors.company_processor import CompanyProcessor
 from lib.processors.holdings_processor import HoldingsProcessor
 from lib.processors.etf_classifier import ETFClassifier
+from lib.processors.checkpoint_manager import CheckpointManager, ProgressTracker
+from lib.utils.performance_monitor import PerformanceMonitor
 
 # Import Supabase helpers
 from supabase_helpers import (
@@ -66,6 +68,10 @@ class StockDataPipeline:
         self.holdings_processor = HoldingsProcessor()
         self.etf_classifier = ETFClassifier()
 
+        # Initialize performance monitoring and checkpointing
+        self.performance_monitor = PerformanceMonitor()
+        self.checkpoint_manager = CheckpointManager()
+
     def run_discovery_mode(self, limit: int = None, validate: bool = True) -> Dict[str, Any]:
         """
         Discovery mode: Find new symbols and optionally validate them.
@@ -96,44 +102,98 @@ class StockDataPipeline:
             return {'discovered': 0, 'valid': 0, 'invalid': 0}
 
         # 2. Filter out existing and excluded symbols to only validate new ones
-        logger.info("🔍 Step 2: Checking which symbols are new...")
-        existing_symbols = set()
-        excluded_symbols = set()
+        logger.info("🔍 Step 2: Filtering symbols (SQL-optimized)...")
 
-        # Get existing symbols from raw_stocks
+        # OPTIMIZATION: Do all filtering in SQL, not Python
+        # This is much faster for large symbol lists
         try:
-            existing_records = supabase_select('raw_stocks', 'symbol', limit=None)
-            if existing_records:
-                existing_symbols = {r['symbol'] for r in existing_records}
-                logger.info(f"📊 Found {len(existing_symbols)} existing symbols in database")
+            from supabase_helpers import get_supabase_client
+            supabase = get_supabase_client()
+
+            # Get discovered symbol list
+            symbol_strings = [s['symbol'] if isinstance(s, dict) else s for s in symbols]
+
+            # Query 1: Get counts of symbols with/without prices (for reporting only)
+            logger.info("📊 Analyzing existing symbols...")
+            stocks_result = supabase.table('raw_stocks').select('symbol,price', count='exact').execute()
+            symbols_with_prices = sum(1 for r in stocks_result.data if r.get('price') is not None)
+            symbols_without_prices = stocks_result.count - symbols_with_prices
+
+            logger.info(f"   {symbols_with_prices:,} symbols with price data")
+            logger.info(f"   {symbols_without_prices:,} symbols without price data")
+
+            # Query 2: Get excluded symbols count
+            excluded_result = supabase.table('raw_excluded_symbols').select('symbol', count='exact').limit(1).execute()
+            excluded_count = excluded_result.count
+            logger.info(f"   {excluded_count:,} previously excluded symbols")
+
+            # Query 3: Filter discovered symbols using SQL NOT IN
+            # This is the KEY OPTIMIZATION - filtering happens in the database, not Python
+            logger.info("🔍 Filtering discovered symbols using SQL...")
+
+            # Get symbols that should be skipped (already processed or excluded)
+            # We skip symbols that:
+            # 1. Are already in raw_stocks (processed, regardless of whether they have prices yet)
+            # 2. Are in raw_excluded_symbols (failed validation)
+            symbols_to_skip = set()
+
+            # Get symbols already in raw_stocks (skip ALL, not just those with prices)
+            skip_in_stocks = supabase.table('raw_stocks') \
+                .select('symbol') \
+                .in_('symbol', symbol_strings) \
+                .execute()
+
+            if skip_in_stocks.data:
+                symbols_to_skip.update(r['symbol'] for r in skip_in_stocks.data)
+                logger.info(f"   {len(skip_in_stocks.data)} discovered symbols already in database (skip)")
+
+            # Get excluded symbols (skip these)
+            skip_excluded = supabase.table('raw_excluded_symbols') \
+                .select('symbol') \
+                .in_('symbol', symbol_strings) \
+                .execute()
+
+            if skip_excluded.data:
+                symbols_to_skip.update(r['symbol'] for r in skip_excluded.data)
+                logger.info(f"   {len(skip_excluded.data)} discovered symbols are excluded (skip)")
+
+            # Filter in Python (but with much smaller set)
+            new_symbols = [s for s in symbols if (s['symbol'] if isinstance(s, dict) else s) not in symbols_to_skip]
+
+            logger.info(
+                f"📊 Validation queue: {len(new_symbols)} symbols "
+                f"(skipped {len(symbols_to_skip)} already processed)"
+            )
+
+            logger.info(f"⚡ DISCOVERY OPTIMIZATION: SQL filtering complete")
+
         except Exception as e:
-            logger.warning(f"⚠️  Could not fetch existing symbols: {e}")
+            logger.error(f"❌ SQL filtering failed, falling back to Python filtering: {e}")
 
-        # Get excluded symbols from raw_stocks_excluded
-        try:
-            excluded_records = supabase_select('raw_stocks_excluded', 'symbol', limit=None)
+            # Fallback to original Python approach
+            existing_symbols_set = set()
+            excluded_symbols_set = set()
+
+            # Get ALL symbols already in raw_stocks (not just those with prices)
+            all_records = supabase_select('raw_stocks', 'symbol,price', limit=None)
+            if all_records:
+                existing_symbols_set = {r['symbol'] for r in all_records}
+
+            excluded_records = supabase_select('raw_excluded_symbols', 'symbol', limit=None)
             if excluded_records:
-                excluded_symbols = {r['symbol'] for r in excluded_records}
-                logger.info(f"📊 Found {len(excluded_symbols)} previously excluded symbols")
-        except Exception as e:
-            logger.warning(f"⚠️  Could not fetch excluded symbols: {e}")
+                excluded_symbols_set = {r['symbol'] for r in excluded_records}
 
-        # Filter out both existing and excluded symbols
-        skip_symbols = existing_symbols | excluded_symbols
-        symbol_strings = [s['symbol'] if isinstance(s, dict) else s for s in symbols]
-        new_symbols = [s for s in symbols if (s['symbol'] if isinstance(s, dict) else s) not in skip_symbols]
-        existing_count = len(symbols) - len(new_symbols)
+            skip_symbols = existing_symbols_set | excluded_symbols_set
+            new_symbols = [s for s in symbols if (s['symbol'] if isinstance(s, dict) else s) not in skip_symbols]
 
-        logger.info(
-            f"📊 Symbol breakdown: {len(new_symbols)} new, "
-            f"{len(existing_symbols)} in database, {len(excluded_symbols)} previously excluded"
-        )
+            symbols_with_prices = sum(1 for r in all_records if r.get('price') is not None) if all_records else 0
+            symbols_without_prices = len(all_records) - symbols_with_prices if all_records else 0
+            excluded_count = len(excluded_symbols_set)
 
         # 3. Validate only new symbols if requested
         if validate and new_symbols:
             logger.info(
-                f"🔍 Step 3: Validating {len(new_symbols)} new symbols "
-                f"(skipping {len(existing_symbols)} existing + {len(excluded_symbols)} excluded)..."
+                f"🔍 Step 3: Validating {len(new_symbols)} symbols..."
             )
             validation_results = self.validator.validate_batch(new_symbols)
 
@@ -142,7 +202,7 @@ class StockDataPipeline:
 
             logger.info(f"✅ Validation complete: {len(valid_symbols)} valid, {len(invalid_symbols)} invalid")
 
-            # 4. Store excluded symbols
+            # 4. Store excluded symbols (auto-exclude symbols without recent prices from any source)
             if invalid_symbols:
                 logger.info("💾 Step 4: Storing excluded symbols...")
                 excluded_records = []
@@ -155,8 +215,8 @@ class StockDataPipeline:
                     })
 
                 try:
-                    supabase_insert('raw_stocks_excluded', excluded_records, batch_size=100)
-                    logger.info(f"✅ Stored {len(excluded_records)} excluded symbols")
+                    supabase_insert('raw_excluded_symbols', excluded_records, batch_size=100)
+                    logger.info(f"✅ Stored {len(excluded_records)} excluded symbols (no recent prices from any source)")
                 except Exception as e:
                     logger.error(f"❌ Failed to store excluded symbols: {e}")
 
@@ -191,17 +251,21 @@ class StockDataPipeline:
             return {
                 'discovered': len(symbols),
                 'new': len(new_symbols),
-                'existing': existing_count,
+                'with_prices': symbols_with_prices,
+                'without_prices': symbols_without_prices,
+                'excluded': excluded_count,
                 'valid': len(valid_symbols),
                 'invalid': len(invalid_symbols),
                 'valid_symbols': valid_symbols
             }
         elif validate and not new_symbols:
-            logger.info("✅ No new symbols to validate - all discovered symbols already exist")
+            logger.info("✅ No new symbols to validate - all discovered symbols already processed")
             return {
                 'discovered': len(symbols),
                 'new': 0,
-                'existing': existing_count,
+                'with_prices': symbols_with_prices,
+                'without_prices': symbols_without_prices,
+                'excluded': excluded_count,
                 'valid': 0,
                 'invalid': 0,
                 'valid_symbols': []
@@ -210,7 +274,9 @@ class StockDataPipeline:
             return {
                 'discovered': len(symbols),
                 'new': len(new_symbols),
-                'existing': existing_count,
+                'with_prices': symbols_with_prices,
+                'without_prices': symbols_without_prices,
+                'excluded': excluded_count,
                 'symbols': [s['symbol'] if isinstance(s, dict) else s for s in symbols]
             }
 
@@ -240,6 +306,9 @@ class StockDataPipeline:
         logger.info("UPDATE MODE")
         logger.info("=" * 60)
 
+        # Start performance monitoring
+        self.performance_monitor.start_run()
+
         # Get symbols from database if not provided
         if symbols is None:
             logger.info("📊 Fetching symbols from database...")
@@ -267,37 +336,168 @@ class StockDataPipeline:
                 time_saved_min = len(skipped_symbols) * 2  # Rough estimate: 2 seconds per symbol
                 logger.info(f"⏱️  Estimated time saved: ~{time_saved_min // 60}min {time_saved_min % 60}s")
 
+                # Record optimization metrics
+                self.performance_monitor.record_optimization(
+                    name="Staleness Filter",
+                    items_processed=len(symbols),
+                    items_skipped=len(skipped_symbols),
+                    time_saved=time_saved_min,
+                    api_calls_saved=len(skipped_symbols) * 3  # price + dividend + company
+                )
+
         results = {}
 
-        # 1. Update prices
-        if update_prices:
-            logger.info(f"📊 Step 1: Updating prices for {len(symbols)} symbols...")
-            self.price_processor.process_batch(symbols, from_date=from_date)
-            results['prices'] = {
-                'successful': self.price_processor.stats.successful,
-                'failed': self.price_processor.stats.failed,
-                'total': len(symbols)
-            }
+        # OPTIMIZATION: Prioritize symbols for better partial results
+        # Process high-priority symbols first (volume, market cap, portfolio holdings)
+        if Config.DATA_FETCH.PRIORITIZE_SYMBOLS and len(symbols) > 100:
+            logger.info("🎯 Prioritizing symbols for processing order...")
+            try:
+                from lib.utils.symbol_prioritizer import SymbolPrioritizer
+
+                # Prioritize symbols (portfolio holdings get highest priority)
+                # TODO: In future, fetch actual portfolio holdings from database
+                symbols = SymbolPrioritizer.prioritize_symbols(
+                    symbols,
+                    portfolio_symbols=None,  # Could fetch from user portfolio table
+                    include_volume=True,
+                    include_market_cap=True
+                )
+
+                logger.info(
+                    f"⚡ SYMBOL PRIORITIZATION: Processing high-priority symbols first "
+                    f"(volume, market cap, exchange)"
+                )
+            except Exception as e:
+                logger.warning(f"⚠️  Symbol prioritization failed: {e}, using original order")
+
+        # OPTIMIZATION: Filter symbols for dividend processing
+        # Only fetch dividends for symbols that are known dividend payers
+        dividend_symbols = symbols
+        if update_dividends and Config.DATA_FETCH.FILTER_DIVIDEND_SYMBOLS:
+            logger.info("🔍 Filtering for dividend-paying symbols...")
+            try:
+                # Query for symbols that have dividend history
+                dividend_payers = supabase_select(
+                    'raw_stocks',
+                    'symbol',
+                    where_clause={'dividend_yield': 'not.is.null'},
+                    limit=None
+                )
+
+                if dividend_payers:
+                    dividend_symbols_set = {r['symbol'] for r in dividend_payers}
+                    # Filter to symbols in our update list that are known dividend payers
+                    dividend_symbols = [s for s in symbols if s in dividend_symbols_set]
+
+                    logger.info(
+                        f"⚡ DIVIDEND FILTER: Processing {len(dividend_symbols):,} dividend payers "
+                        f"(skipping {len(symbols) - len(dividend_symbols):,} non-payers)"
+                    )
+                else:
+                    logger.info("📊 No dividend history found - processing all symbols")
+            except Exception as e:
+                logger.warning(f"⚠️  Could not filter dividend symbols: {e}")
+                dividend_symbols = symbols
+
+        # OPTIMIZATION: Parallelize prices and dividends (independent operations)
+        # They write to different tables and have separate rate limiters
+        if update_prices and update_dividends:
+            logger.info(f"⚡ PARALLEL MODE: Running prices + dividends simultaneously...")
+            logger.info(f"   📊 Prices: {len(symbols):,} symbols")
+            logger.info(f"   💰 Dividends: {len(dividend_symbols):,} symbols")
+
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            def run_prices():
+                """Run price updates"""
+                logger.info(f"📊 Starting price updates for {len(symbols)} symbols...")
+                # Use batch EOD optimization if enabled and no specific from_date
+                if Config.DATA_FETCH.USE_BATCH_EOD and from_date is None:
+                    logger.info("⚡ Using batch EOD optimization for recent data...")
+                    self.price_processor.process_batch_with_eod(
+                        symbols,
+                        use_batch_eod=True,
+                        batch_eod_days=Config.DATA_FETCH.BATCH_EOD_DAYS
+                    )
+                else:
+                    # Use regular parallel processing
+                    self.price_processor.process_batch(symbols, from_date=from_date)
+
+                return {
+                    'successful': self.price_processor.stats.successful,
+                    'failed': self.price_processor.stats.failed,
+                    'total': len(symbols)
+                }
+
+            def run_dividends():
+                """Run dividend updates"""
+                logger.info(f"💰 Starting dividend updates for {len(dividend_symbols)} symbols...")
+                self.dividend_processor.process_batch(dividend_symbols, from_date=from_date)
+                return {
+                    'successful': self.dividend_processor.stats.successful,
+                    'skipped': self.dividend_processor.stats.skipped,
+                    'failed': self.dividend_processor.stats.failed,
+                    'total': len(dividend_symbols)
+                }
+
+            # Run prices and dividends in parallel
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                price_future = executor.submit(run_prices)
+                div_future = executor.submit(run_dividends)
+
+                # Wait for both to complete
+                results['prices'] = price_future.result()
+                results['dividends'] = div_future.result()
+
             logger.info(
-                f"✅ Prices complete: {results['prices']['successful']} successful, "
-                f"{results['prices']['failed']} failed"
+                f"✅ PARALLEL COMPLETE - "
+                f"Prices: {results['prices']['successful']} successful, "
+                f"Dividends: {results['dividends']['successful']} successful"
             )
 
-        # 2. Update dividends
-        if update_dividends:
-            logger.info(f"💰 Step 2: Updating dividends for {len(symbols)} symbols...")
-            self.dividend_processor.process_batch(symbols, from_date=from_date)
-            results['dividends'] = {
-                'successful': self.dividend_processor.stats.successful,
-                'skipped': self.dividend_processor.stats.skipped,
-                'failed': self.dividend_processor.stats.failed,
-                'total': len(symbols)
-            }
-            logger.info(
-                f"✅ Dividends complete: {results['dividends']['successful']} successful, "
-                f"{results['dividends']['skipped']} skipped (no dividends), "
-                f"{results['dividends']['failed']} failed"
-            )
+        else:
+            # Sequential mode (original behavior) - for when only one is enabled
+            # 1. Update prices
+            if update_prices:
+                logger.info(f"📊 Step 1: Updating prices for {len(symbols)} symbols...")
+
+                # Use batch EOD optimization if enabled and no specific from_date
+                if Config.DATA_FETCH.USE_BATCH_EOD and from_date is None:
+                    logger.info("⚡ Using batch EOD optimization for recent data...")
+                    self.price_processor.process_batch_with_eod(
+                        symbols,
+                        use_batch_eod=True,
+                        batch_eod_days=Config.DATA_FETCH.BATCH_EOD_DAYS
+                    )
+                else:
+                    # Use regular parallel processing
+                    self.price_processor.process_batch(symbols, from_date=from_date)
+
+                results['prices'] = {
+                    'successful': self.price_processor.stats.successful,
+                    'failed': self.price_processor.stats.failed,
+                    'total': len(symbols)
+                }
+                logger.info(
+                    f"✅ Prices complete: {results['prices']['successful']} successful, "
+                    f"{results['prices']['failed']} failed"
+                )
+
+            # 2. Update dividends
+            if update_dividends:
+                logger.info(f"💰 Step 2: Updating dividends for {len(dividend_symbols)} symbols...")
+                self.dividend_processor.process_batch(dividend_symbols, from_date=from_date)
+                results['dividends'] = {
+                    'successful': self.dividend_processor.stats.successful,
+                    'skipped': self.dividend_processor.stats.skipped,
+                    'failed': self.dividend_processor.stats.failed,
+                    'total': len(dividend_symbols)
+                }
+                logger.info(
+                    f"✅ Dividends complete: {results['dividends']['successful']} successful, "
+                    f"{results['dividends']['skipped']} skipped (no dividends), "
+                    f"{results['dividends']['failed']} failed"
+                )
 
         # 3. Update company info
         if update_companies:
@@ -312,6 +512,15 @@ class StockDataPipeline:
                 f"✅ Companies complete: {results['companies']['successful']} successful, "
                 f"{results['companies']['failed']} failed"
             )
+
+        # Complete performance monitoring
+        self.performance_monitor.complete_run()
+
+        # Save metrics to file
+        self.performance_monitor.save_metrics()
+
+        # Print performance summary
+        self.performance_monitor.print_summary()
 
         return results
 
