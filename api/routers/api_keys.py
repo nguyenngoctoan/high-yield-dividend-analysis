@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import logging
 
 from api.auth import validate_api_key, generate_api_key, hash_api_key
+from api.routers.auth import require_authentication
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -65,17 +66,17 @@ class CreateAPIKeyResponse(BaseModel):
 @router.post("/keys", response_model=CreateAPIKeyResponse, status_code=status.HTTP_201_CREATED)
 async def create_api_key(
     request: CreateAPIKeyRequest,
-    user_info: Dict = Depends(validate_api_key)
+    user: Dict = Depends(require_authentication)
 ) -> CreateAPIKeyResponse:
     """
     Create a new API key.
 
-    This endpoint requires authentication with an existing API key.
+    This endpoint requires OAuth authentication (user must be logged in).
     The new API key is only shown once - save it securely!
 
     Args:
         request: API key creation parameters
-        user_info: Authenticated user information
+        user: Authenticated user information from OAuth
 
     Returns:
         The newly created API key (shown only once)
@@ -108,12 +109,12 @@ async def create_api_key(
         supabase = get_supabase_client()
 
         # Insert the new API key
-        result = supabase.table('api_keys').insert({
-            'user_id': user_info['user_id'],
-            'key_name': request.name,
+        result = supabase.table('divv_api_keys').insert({
+            'user_id': str(user['id']),
+            'name': request.name,
             'key_hash': key_hash,
             'key_prefix': key_prefix,
-            'tier': request.tier,
+            'tier': user.get('tier', request.tier),  # Use user's tier, fallback to request tier
             'is_active': True,
             'expires_at': expires_at.isoformat() if expires_at else None,
             'metadata': request.metadata
@@ -124,7 +125,7 @@ async def create_api_key(
 
         key_data = result.data[0]
 
-        logger.info(f"Created new API key {key_data['id']} for user {user_info['user_id']}")
+        logger.info(f"Created new API key {key_data['id']} for user {user['id']} ({user['email']})")
 
         return CreateAPIKeyResponse(
             id=key_data['id'],
@@ -153,14 +154,14 @@ async def create_api_key(
 
 @router.get("/keys", response_model=List[APIKeyResponse])
 async def list_api_keys(
-    user_info: Dict = Depends(validate_api_key),
+    user: Dict = Depends(require_authentication),
     include_inactive: bool = False
 ) -> List[APIKeyResponse]:
     """
     List all API keys for the authenticated user.
 
     Args:
-        user_info: Authenticated user information
+        user: Authenticated user information from OAuth
         include_inactive: Whether to include revoked keys
 
     Returns:
@@ -170,7 +171,7 @@ async def list_api_keys(
         supabase = get_supabase_client()
 
         # Query API keys
-        query = supabase.table('api_keys').select('*').eq('user_id', user_info['user_id'])
+        query = supabase.table('divv_api_keys').select('*').eq('user_id', str(user['id']))
 
         if not include_inactive:
             query = query.eq('is_active', True)
@@ -182,9 +183,9 @@ async def list_api_keys(
             keys.append(APIKeyResponse(
                 id=key_data['id'],
                 user_id=key_data['user_id'],
-                name=key_data.get('key_name', 'Unnamed Key'),
+                name=key_data.get('name', 'Unnamed Key'),
                 key_prefix=key_data['key_prefix'],
-                tier=key_data['tier'],
+                tier=key_data.get('tier', 'free'),
                 is_active=key_data['is_active'],
                 request_count=key_data.get('request_count', 0),
                 last_used_at=datetime.fromisoformat(key_data['last_used_at'].replace('Z', '+00:00')) if key_data.get('last_used_at') else None,
@@ -211,7 +212,7 @@ async def list_api_keys(
 @router.delete("/keys/{key_id}", status_code=status.HTTP_200_OK)
 async def revoke_api_key(
     key_id: str,
-    user_info: Dict = Depends(validate_api_key)
+    user: Dict = Depends(require_authentication)
 ) -> Dict[str, Any]:
     """
     Revoke an API key.
@@ -221,7 +222,7 @@ async def revoke_api_key(
 
     Args:
         key_id: The ID of the API key to revoke
-        user_info: Authenticated user information
+        user: Authenticated user information from OAuth
 
     Returns:
         Confirmation message
@@ -230,7 +231,7 @@ async def revoke_api_key(
         supabase = get_supabase_client()
 
         # Verify the key belongs to the user
-        result = supabase.table('api_keys').select('*').eq('id', key_id).eq('user_id', user_info['user_id']).execute()
+        result = supabase.table('divv_api_keys').select('*').eq('id', key_id).eq('user_id', str(user['id'])).execute()
 
         if not result.data:
             raise HTTPException(
@@ -246,9 +247,9 @@ async def revoke_api_key(
             )
 
         # Revoke the key
-        supabase.table('api_keys').update({'is_active': False}).eq('id', key_id).execute()
+        supabase.table('divv_api_keys').update({'is_active': False}).eq('id', key_id).execute()
 
-        logger.info(f"Revoked API key {key_id} for user {user_info['user_id']}")
+        logger.info(f"Revoked API key {key_id} for user {user['id']} ({user['email']})")
 
         return {
             "id": key_id,
@@ -275,7 +276,7 @@ async def revoke_api_key(
 @router.get("/keys/{key_id}/usage")
 async def get_api_key_usage(
     key_id: str,
-    user_info: Dict = Depends(validate_api_key),
+    user: Dict = Depends(require_authentication),
     days: int = 30
 ) -> Dict[str, Any]:
     """
@@ -283,7 +284,7 @@ async def get_api_key_usage(
 
     Args:
         key_id: The ID of the API key
-        user_info: Authenticated user information
+        user: Authenticated user information from OAuth
         days: Number of days of history to retrieve (default: 30)
 
     Returns:
@@ -293,7 +294,7 @@ async def get_api_key_usage(
         supabase = get_supabase_client()
 
         # Verify the key belongs to the user
-        key_result = supabase.table('api_keys').select('*').eq('id', key_id).eq('user_id', user_info['user_id']).execute()
+        key_result = supabase.table('divv_api_keys').select('*').eq('id', key_id).eq('user_id', str(user['id'])).execute()
 
         if not key_result.data:
             raise HTTPException(

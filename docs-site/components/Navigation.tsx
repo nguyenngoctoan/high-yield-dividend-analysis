@@ -116,8 +116,8 @@ export default function Navigation({ onEndpointChange }: { onEndpointChange?: (e
 
             {expandedSections.has(section.title) && (
               <ul className="mt-1">
-                {section.items.map((item) => (
-                  <li key={item.href}>
+                {section.items.map((item, index) => (
+                  <li key={`${section.title}-${item.href}-${index}`}>
                     <Link
                       href={item.href}
                       onClick={() => onEndpointChange?.(item.href)}

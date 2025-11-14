@@ -8,14 +8,19 @@ Provides comprehensive access to stock prices, dividend data, ETF holdings, and 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import time
 import logging
 from typing import Dict, Any
+from pathlib import Path
 
 # Import routers
-from api.routers import stocks, dividends, screeners, etfs, prices, analytics, search, api_keys
+from api.routers import stocks, dividends, screeners, etfs, prices, analytics, search, api_keys, auth, bulk
 from api.rate_limit import rate_limit_middleware
+from api.middleware.rate_limiter import RateLimiterMiddleware
+from api.config import settings
 
 # Configure logging
 logging.basicConfig(
@@ -72,16 +77,41 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=settings.ALLOWED_ORIGINS,  # Configure from environment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
 )
 
+# Session middleware (required for OAuth)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    session_cookie="session",
+    max_age=1800,  # 30 minutes
+    same_site="lax",
+    https_only=False  # Set to True in production with HTTPS
+)
+
 # Gzip compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# Rate limiting middleware (monthly + per-minute limits)
+app.add_middleware(
+    RateLimiterMiddleware,
+    exclude_paths=[
+        "/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/auth/login",
+        "/auth/callback",
+        "/auth/logout",
+        "/auth/status",
+        "/"
+    ]
+)
 
 # Request timing and rate limiting middleware
 @app.middleware("http")
@@ -184,6 +214,9 @@ async def root() -> Dict[str, Any]:
     }
 
 
+# Include auth router (no /v1 prefix for OAuth callbacks)
+app.include_router(auth.router, prefix="/auth", tags=["authentication"])
+
 # Include routers with /v1 prefix
 app.include_router(stocks.router, prefix="/v1", tags=["stocks"])
 app.include_router(dividends.router, prefix="/v1", tags=["dividends"])
@@ -193,6 +226,20 @@ app.include_router(prices.router, prefix="/v1", tags=["prices"])
 app.include_router(analytics.router, prefix="/v1", tags=["analytics"])
 app.include_router(search.router, prefix="/v1", tags=["search"])
 app.include_router(api_keys.router, prefix="/v1", tags=["api_keys"])
+app.include_router(bulk.router, prefix="/v1", tags=["bulk"])
+
+
+# Serve static HTML pages for login and dashboard
+@app.get("/login", include_in_schema=False)
+async def serve_login():
+    """Serve the login page."""
+    return FileResponse("web/login.html")
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def serve_dashboard():
+    """Serve the dashboard page."""
+    return FileResponse("web/dashboard.html")
 
 
 # Startup event

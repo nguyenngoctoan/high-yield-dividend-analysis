@@ -90,7 +90,7 @@ async def validate_api_key(
         supabase = get_supabase_client()
 
         # Look up the API key in the database
-        result = supabase.table('api_keys').select('*').eq('key_hash', key_hash).execute()
+        result = supabase.table('divv_api_keys').select('*').eq('key_hash', key_hash).execute()
 
         if not result.data:
             raise HTTPException(
@@ -136,7 +136,7 @@ async def validate_api_key(
                 )
 
         # Update last used timestamp
-        supabase.table('api_keys').update({
+        supabase.table('divv_api_keys').update({
             'last_used_at': datetime.utcnow().isoformat(),
             'request_count': key_data.get('request_count', 0) + 1
         }).eq('id', key_data['id']).execute()

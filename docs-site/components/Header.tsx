@@ -1,10 +1,37 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  async function checkAuth() {
+    try {
+      const response = await fetch('http://localhost:8000/auth/status', {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (data.authenticated) {
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    window.location.href = 'http://localhost:8000/auth/logout';
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -45,14 +72,55 @@ export default function Header() {
             </a>
           </div>
 
-          {/* CTA Button */}
+          {/* CTA Button / User Menu */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/api"
-              className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-all"
-            >
-              Get Started
-            </Link>
+            {loading ? (
+              <div className="w-24 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+            ) : user ? (
+              <>
+                <div className="flex items-center space-x-3">
+                  {user.picture_url && (
+                    <Image
+                      src={user.picture_url}
+                      alt={user.name || user.email}
+                      width={32}
+                      height={32}
+                      className="rounded-full border-2 border-blue-600"
+                    />
+                  )}
+                  <span className="text-sm text-gray-700 font-medium">
+                    {user.name || user.email}
+                  </span>
+                </div>
+                <a
+                  href="http://localhost:8000/dashboard"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all text-sm"
+                >
+                  Dashboard
+                </a>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all text-sm"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="http://localhost:8000/login"
+                  className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium transition-all"
+                >
+                  Login
+                </a>
+                <Link
+                  href="/api"
+                  className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-all"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -125,13 +193,52 @@ export default function Header() {
               >
                 Status
               </a>
-              <Link
-                href="/api"
-                className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-all text-center"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <>
+                  <div className="flex items-center space-x-3 py-2">
+                    {user.picture_url && (
+                      <Image
+                        src={user.picture_url}
+                        alt={user.name || user.email}
+                        width={32}
+                        height={32}
+                        className="rounded-full border-2 border-blue-600"
+                      />
+                    )}
+                    <span className="text-sm text-gray-700 font-medium">
+                      {user.name || user.email}
+                    </span>
+                  </div>
+                  <a
+                    href="http://localhost:8000/dashboard"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all text-center"
+                  >
+                    Dashboard
+                  </a>
+                  <button
+                    onClick={handleLogout}
+                    className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all text-center w-full"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <a
+                    href="http://localhost:8000/login"
+                    className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium transition-all text-center"
+                  >
+                    Login
+                  </a>
+                  <Link
+                    href="/api"
+                    className="px-6 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-all text-center"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
