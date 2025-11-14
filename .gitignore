@@ -49,3 +49,46 @@ test_archive/
 archive/logs/
 docs-site/node_modules/
 docs-site/.next/
+
+# Node modules and build artifacts
+docs-site/node_modules/
+docs-site/.next/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+.daily_update.lock
+.daily_update.pid
