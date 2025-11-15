@@ -77,7 +77,6 @@ wait $CBOE_PID
 - YieldMax → writes to `raw_yieldmax_dividends`
 - CBOE → writes to `raw_dividends_cboe`
 - NASDAQ → writes to `raw_dividends_nasdaq`
-- NYSE → writes to `raw_dividends_nyse`
 - Snowball → writes to `raw_dividends_snowball`
 
 No table conflicts = safe parallel execution.

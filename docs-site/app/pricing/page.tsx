@@ -29,10 +29,11 @@ export default function PricingPage() {
               price="$0"
               description="For trying out the API"
               features={[
-                '10,000 calls/month',
+                '5,000 calls/month',
                 '10 calls/minute',
-                '150 curated stocks',
-                '1 year history',
+                '19,600+ stocks',
+                'Current prices & fundamentals',
+                'No historical dividend data',
                 'EOD prices only',
                 'Community support'
               ]}
@@ -49,11 +50,11 @@ export default function PricingPage() {
               features={[
                 '50,000 calls/month',
                 '30 calls/minute',
-                '3,000 US stocks',
-                '5 years history',
-                'Hourly + EOD prices',
-                'Email support',
-                'Bulk: 50 symbols'
+                '19,600+ stocks',
+                'All fundamentals & dividends',
+                '5 years dividend history',
+                'EOD prices only',
+                'Email support'
               ]}
               cta="Start Free Trial"
               ctaLink="/api"
@@ -69,11 +70,10 @@ export default function PricingPage() {
               features={[
                 '250,000 calls/month',
                 '100 calls/minute',
-                '4,600 international stocks',
-                '30+ years history',
-                '15-min + EOD prices',
+                '19,600+ stocks',
+                '30 years dividend history',
+                'EOD prices',
                 'Priority support',
-                'Bulk: 200 symbols',
                 'Webhooks'
               ]}
               cta="Start Free Trial"
@@ -91,11 +91,11 @@ export default function PricingPage() {
               features={[
                 '1M calls/month',
                 '300 calls/minute',
-                '8,000+ global stocks',
-                'Full history',
-                '1-min + EOD prices',
+                '19,600+ stocks',
+                '100 years dividend history',
+                'EOD prices',
                 'Dedicated support (4hr SLA)',
-                'Bulk: 1,000 symbols',
+                'Bulk operations (1,000 symbols)',
                 'Custom screeners',
                 'White-label API'
               ]}
@@ -103,6 +103,231 @@ export default function PricingPage() {
               ctaLink="/api"
               badge="60% cheaper than Polygon"
             />
+          </div>
+
+          {/* Attribute Access Table */}
+          <div className="max-w-5xl mx-auto mb-24">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+              What Data Can You Access?
+            </h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-100 border-b border-gray-300">
+                    <th className="text-left py-4 px-6 text-gray-900 font-semibold border-r border-gray-300">Attribute</th>
+                    <th className="text-center py-4 px-6 text-gray-900 font-semibold border-r border-gray-300">Free</th>
+                    <th className="text-center py-4 px-6 text-gray-900 font-semibold border-r border-gray-300">Starter</th>
+                    <th className="text-center py-4 px-6 text-gray-900 font-semibold border-r border-gray-300">Premium</th>
+                    <th className="text-center py-4 px-6 text-gray-900 font-semibold">Professional</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* API Limits Section */}
+                  <tr className="border-b border-gray-300 bg-blue-50">
+                    <td colSpan={5} className="py-3 px-6 font-bold text-blue-900 text-sm uppercase tracking-wide">
+                      API Limits & Performance
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Monthly API Calls</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">5,000</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">50,000</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">250,000</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">1,000,000</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Calls Per Minute</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">10</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">30</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">100</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">300</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Burst Limit</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">20</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">60</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">200</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">600</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Bulk Operations (Professional+)</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-400 text-xl">✗</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-400 text-xl">✗</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-400 text-xl">✗</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">1,000 symbols</span>
+                    </td>
+                  </tr>
+
+                  {/* Stock Coverage Section */}
+                  <tr className="border-b border-gray-300 bg-green-50">
+                    <td colSpan={5} className="py-3 px-6 font-bold text-green-900 text-sm uppercase tracking-wide">
+                      Stock Coverage
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Available Stocks</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">19,600+</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">19,600+</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">19,600+</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">19,600+</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Historical Data Years</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">1 year</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">5 years</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">30 years</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">100 years</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Price Data Frequency</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">EOD only</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">EOD only</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-900 font-semibold">EOD only</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-gray-900 font-semibold">EOD only</span>
+                    </td>
+                  </tr>
+
+                  {/* Data Access Section */}
+                  <tr className="border-b border-gray-300 bg-purple-50">
+                    <td colSpan={5} className="py-3 px-6 font-bold text-purple-900 text-sm uppercase tracking-wide">
+                      Data Attributes
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Price (current, open, high, low)</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Dividend Yield & Amount</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Fundamentals (PE, Market Cap, Volume, Sector)</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-400 text-xl">✗</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Dividend History</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-400 text-xl">✗</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                  </tr>
+                  <tr className="bg-white hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 border-r border-gray-300 font-medium">Dividend Aristocrat Detection</td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-gray-400 text-xl">✗</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center border-r border-gray-300">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="text-green-600 text-xl">✓</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-center mt-6 text-gray-600 font-semibold">
+              Free tier gives you the essentials: current price and dividend yield only. Upgrade for fundamentals, historical data, and more.
+            </p>
           </div>
 
           {/* Enterprise Section */}
@@ -154,7 +379,7 @@ export default function PricingPage() {
                   <tr className="border-b border-gray-300 bg-blue-50">
                     <td className="py-4 px-4 font-semibold text-gray-900 border-r border-gray-300">Divv API</td>
                     <td className="py-4 px-4 font-semibold text-blue-600 border-r border-gray-300">$9/mo</td>
-                    <td className="py-4 px-4 font-semibold text-blue-600 border-r border-gray-300">10,000/mo</td>
+                    <td className="py-4 px-4 font-semibold text-blue-600 border-r border-gray-300">5,000/mo</td>
                     <td className="py-4 px-4 font-semibold text-blue-600">Specialized & Comprehensive</td>
                   </tr>
                   <tr className="border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors">

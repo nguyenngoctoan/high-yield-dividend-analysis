@@ -110,7 +110,7 @@ if SUPABASE_URL and SUPABASE_KEY:
         # Test connection to local Supabase
         try:
             # Try a simple query to test connection
-            test_response = supabase.table("stocks").select("symbol").limit(1).execute()
+            test_response = supabase.table('raw_stocks').select("symbol").limit(1).execute()
             logger.info("Successfully connected to local Supabase instance")
         except Exception as test_e:
             logger.warning(f"Could not connect to Supabase tables - they may not exist yet: {test_e}")
@@ -277,11 +277,11 @@ def test_supabase_connection():
             "company_name": "Test Connection"
         }
         
-        result = supabase.table("stocks").insert(test_record).execute()
+        result = supabase.table('raw_stocks').insert(test_record).execute()
         logger.info("Successfully inserted test record into stocks table")
         
         # Verify the record was inserted
-        verify_result = supabase.table("stocks").select("*").eq("symbol", "TEST_CONNECTION").execute()
+        verify_result = supabase.table('raw_stocks').select("*").eq("symbol", "TEST_CONNECTION").execute()
         if verify_result.data:
             logger.info("Successfully verified test record in stocks table")
         else:
@@ -289,7 +289,7 @@ def test_supabase_connection():
             return False
         
         # Clean up the test record
-        supabase.table("stocks").delete().eq("symbol", "TEST_CONNECTION").execute()
+        supabase.table('raw_stocks').delete().eq("symbol", "TEST_CONNECTION").execute()
         logger.info("Cleaned up test record")
         
         return True
@@ -495,7 +495,7 @@ def process_security_optimized(security, repo):
         # Insert into database
             if supabase:
             try:
-                    supabase.table("stocks").upsert(record).execute()
+                    supabase.table('raw_stocks').upsert(record).execute()
                 logger.debug(f"Added/updated stock: {symbol}")
             except Exception as e:
                 logger.error(f"Error inserting stock {symbol}: {e}")
@@ -512,8 +512,8 @@ def get_max_dates_for_symbols():
     try:
         logger.info("Fetching max dates for all symbols...")
         
-        # Get max dates from stock_prices
-        prices_result = supabase.table("stock_prices").select("symbol, date").order("date", desc=True).execute()
+        # Get max dates from raw_stock_prices
+        prices_result = supabase.table('raw_stock_prices').select("symbol, date").order("date", desc=True).execute()
         max_price_dates = {}
         for record in prices_result.data:
             symbol = record['symbol']
@@ -521,8 +521,8 @@ def get_max_dates_for_symbols():
             if symbol not in max_price_dates or date > max_price_dates[symbol]:
                 max_price_dates[symbol] = date
         
-        # Get max dates from dividend_history
-        dividends_result = supabase.table("dividend_history").select("symbol, payment_date").order("payment_date", desc=True).execute()
+        # Get max dates from raw_dividends
+        dividends_result = supabase.table('raw_dividends').select("symbol, payment_date").order("payment_date", desc=True).execute()
         max_dividend_dates = {}
         for record in dividends_result.data:
             symbol = record['symbol']
@@ -547,13 +547,13 @@ def update_stock_prices_optimized(repo):
             logger.error("Supabase client not available")
             return False
         
-        # Fetch all symbols from stocks table with pagination
+        # Fetch all symbols from raw_stocks table with pagination
         symbols = []
         page_size = 1000
         offset = 0
         
         while True:
-            result = supabase.table("stocks").select("symbol").range(offset, offset + page_size - 1).execute()
+            result = supabase.table('raw_stocks').select("symbol").range(offset, offset + page_size - 1).execute()
             if not result.data:
                 break
             symbols.extend([row['symbol'] for row in result.data])
@@ -672,7 +672,7 @@ def process_symbol_prices(symbol, repo, max_date=None):
         # Batch insert prices
         if supabase and price_records:
             try:
-                supabase.table("stock_prices").upsert(price_records).execute()
+                supabase.table('raw_stock_prices').upsert(price_records).execute()
                 logger.debug(f"Inserted {len(price_records)} price records for {symbol}")
                 return True
             except Exception as e:
@@ -695,13 +695,13 @@ def update_dividends_optimized(repo):
             logger.error("Supabase client not available")
             return False
             
-        # Fetch all symbols from stocks table with pagination
+        # Fetch all symbols from raw_stocks table with pagination
         symbols = []
         page_size = 1000
         offset = 0
         
         while True:
-            result = supabase.table("stocks").select("symbol").range(offset, offset + page_size - 1).execute()
+            result = supabase.table('raw_stocks').select("symbol").range(offset, offset + page_size - 1).execute()
             if not result.data:
                 break
             symbols.extend([row['symbol'] for row in result.data])
@@ -816,7 +816,7 @@ def process_symbol_dividends(symbol, repo, max_date=None):
         # Batch insert dividends
         if supabase and dividend_records:
         try:
-                supabase.table("dividend_history").upsert(dividend_records).execute()
+                supabase.table('raw_dividends').upsert(dividend_records).execute()
                 logger.debug(f"Inserted {len(dividend_records)} dividend records for {symbol}")
                 return True
         except Exception as e:

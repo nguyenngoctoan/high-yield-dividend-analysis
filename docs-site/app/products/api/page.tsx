@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Code, Zap, Shield, BarChart3, CheckCircle, ArrowRight } from 'lucide-react'
+import { STOCK_COUNT } from '@/lib/config'
 
 export default function APIProductPage() {
   return (
@@ -152,12 +153,12 @@ export default function APIProductPage() {
                 Comprehensive Data
               </h3>
               <p className="text-slate-600 mb-4">
-                24,000+ stocks and ETFs with real-time prices, dividend history, ETF metrics, and portfolio analytics.
+                {STOCK_COUNT} stocks and ETFs with real-time prices, dividend history, ETF metrics, and portfolio analytics.
               </p>
               <ul className="space-y-2">
                 <li className="flex items-start gap-2 text-sm text-slate-600">
                   <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>24,000+ symbols</span>
+                  <span>{STOCK_COUNT} symbols</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-slate-600">
                   <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />

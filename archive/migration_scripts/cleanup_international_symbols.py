@@ -27,7 +27,7 @@ def get_international_symbols():
     supabase = get_supabase_client()
 
     # Get all stocks with exchange data
-    result = supabase.table('stocks').select('symbol, exchange').execute()
+    result = supabase.table('raw_stocks').select('symbol, exchange').execute()
 
     international_symbols = []
     by_exchange = {}
@@ -117,7 +117,7 @@ def main():
     print("\n📊 Verifying final database state...")
     supabase = get_supabase_client()
 
-    result = supabase.table('stocks').select('exchange', count='exact').execute()
+    result = supabase.table('raw_stocks').select('exchange', count='exact').execute()
     exchanges = {}
     for stock in result.data:
         ex = stock.get('exchange') or 'NULL'

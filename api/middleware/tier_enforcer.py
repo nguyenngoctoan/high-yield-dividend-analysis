@@ -8,6 +8,7 @@ from typing import Optional, Dict, List
 import logging
 
 from supabase_helpers import get_supabase_client
+from api.config import settings
 
 logger = logging.getLogger(__name__)
 supabase = get_supabase_client()
@@ -26,14 +27,14 @@ class TierEnforcer:
         """Get tier limits from cache or database"""
         if tier not in cls._tier_limits_cache:
             try:
-                result = supabase.table('tier_limits').select('*').eq('tier', tier).single().execute()
+                result = supabase.table('divv_tier_limits').select('*').eq('tier', tier).single().execute()
                 cls._tier_limits_cache[tier] = result.data
             except Exception as e:
                 logger.error(f"Error fetching tier limits for {tier}: {e}")
                 # Return free tier as fallback
                 return {
                     'tier': 'free',
-                    'monthly_call_limit': 10000,
+                    'monthly_call_limit': 5000,
                     'calls_per_minute': 10,
                     'stock_coverage': {'type': 'sample', 'count': 150},
                     'features': {'bulk_export': False, 'webhooks': False},
@@ -104,7 +105,7 @@ class TierEnforcer:
         """Check if symbol's exchange country is in allowed list"""
         try:
             # Get stock info from database
-            result = supabase.table('stocks').select('exchange').eq('symbol', symbol).single().execute()
+            result = supabase.table('raw_stocks').select('exchange').eq('symbol', symbol).single().execute()
 
             if not result.data:
                 return False
@@ -132,7 +133,7 @@ class TierEnforcer:
     async def _check_symbol_in_free_tier(cls, symbol: str) -> bool:
         """Check if symbol is in the free tier sample dataset"""
         try:
-            result = supabase.table('free_tier_stocks').select('symbol').eq('symbol', symbol).execute()
+            result = supabase.table('divv_free_tier_stocks').select('symbol').eq('symbol', symbol).execute()
             return len(result.data) > 0
         except Exception as e:
             logger.error(f"Error checking free tier access for {symbol}: {e}")
@@ -168,8 +169,8 @@ class TierEnforcer:
 
         # Check data access features
         if feature == 'intraday_data':
-            frequency = limits.get('price_data_frequency', 'eod')
-            return frequency in ['hourly', '15min', '1min', 'real-time']
+            # Intraday data is not supported
+            return False
 
         if feature == 'real_time_dividends':
             return tier in ['professional', 'enterprise']
@@ -191,7 +192,7 @@ class TierEnforcer:
 
     @classmethod
     async def get_price_data_frequency(cls, tier: str) -> str:
-        """Get allowed price data frequency (eod, hourly, 15min, 1min, real-time)"""
+        """Get allowed price data frequency (eod only)"""
         limits = await cls.get_tier_limits(tier)
         return limits.get('price_data_frequency', 'eod')
 
@@ -209,7 +210,7 @@ class TierEnforcer:
                     detail={
                         "error": "access_denied",
                         "message": f"Symbol {symbol} is not accessible on the {tier} tier",
-                        "upgrade_url": "http://localhost:3000/pricing"
+                        "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                     }
                 )
             return True
@@ -229,7 +230,7 @@ class TierEnforcer:
                     detail={
                         "error": "feature_not_available",
                         "message": f"Feature '{feature}' is not available on the {tier} tier",
-                        "upgrade_url": "http://localhost:3000/pricing"
+                        "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                     }
                 )
             return True
@@ -250,7 +251,7 @@ class TierEnforcer:
                     detail={
                         "error": "bulk_requests_not_available",
                         "message": f"Bulk requests are not available on the {tier} tier",
-                        "upgrade_url": "http://localhost:3000/pricing"
+                        "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                     }
                 )
 
@@ -262,7 +263,7 @@ class TierEnforcer:
                         "message": f"Requested {len(symbols)} symbols, but {tier} tier allows maximum {max_symbols} symbols per request",
                         "max_symbols": max_symbols,
                         "requested_symbols": len(symbols),
-                        "upgrade_url": "http://localhost:3000/pricing"
+                        "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                     }
                 )
 

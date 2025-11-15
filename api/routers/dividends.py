@@ -95,7 +95,7 @@ async def get_dividend_calendar(
             )
 
         # Build query
-        query = supabase.table('raw_future_dividends').select('*')
+        query = supabase.table('divv_future_dividends').select('*')
 
         # Apply filters
         query = query.gte('ex_date', start_date.isoformat())
@@ -280,7 +280,7 @@ async def get_stock_dividends(
         # Next payment (if include_future)
         next_payment = None
         if include_future:
-            future_result = supabase.table('raw_future_dividends').select('*')\
+            future_result = supabase.table('divv_future_dividends').select('*')\
                 .eq('symbol', symbol.upper())\
                 .gte('ex_date', date.today().isoformat())\
                 .order('ex_date', desc=False)\

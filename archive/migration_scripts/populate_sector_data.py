@@ -128,7 +128,7 @@ def populate_sectors(batch_size=1000):
 
     # Get all stocks without sector data
     print("\n📊 Fetching stocks to update...")
-    result = supabase.table('stocks').select('symbol, sector').execute()
+    result = supabase.table('raw_stocks').select('symbol, sector').execute()
 
     stocks_to_update = []
     for stock in result.data:
@@ -215,7 +215,7 @@ def populate_sectors(batch_size=1000):
     # Show final statistics
     print("\n📈 Final Sector Coverage:")
     print("=" * 60)
-    result = supabase.table('stocks').select('sector', count='exact').execute()
+    result = supabase.table('raw_stocks').select('sector', count='exact').execute()
 
     total_stocks = len(result.data)
     stocks_with_sector = sum(1 for s in result.data if s.get('sector') and s.get('sector').strip())
@@ -230,7 +230,7 @@ def populate_sectors(batch_size=1000):
 
     # Show some example sector distributions
     print("\n📊 Sample Sector Strings (first 20):")
-    result = supabase.table('stocks').select('symbol, sector').not_.is_('sector', 'null').limit(20).execute()
+    result = supabase.table('raw_stocks').select('symbol, sector').not_.is_('sector', 'null').limit(20).execute()
 
     for stock in result.data:
         sector = stock.get('sector', '')

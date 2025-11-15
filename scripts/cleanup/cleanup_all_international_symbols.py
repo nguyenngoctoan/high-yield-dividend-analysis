@@ -27,7 +27,6 @@ INTERNATIONAL_SUFFIXES = Config.EXCHANGE.BLOCKED_SUFFIXES
 TABLES_TO_CLEAN = [
     'raw_stocks',
     'raw_stock_prices',
-    'raw_stock_prices_hourly',
     'raw_dividends',
     'raw_stock_splits',
     'dim_stocks',

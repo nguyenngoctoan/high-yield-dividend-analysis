@@ -40,7 +40,7 @@ def backfill_exchanges(batch_size=1000):
 
     while True:
         # Fetch batch of stocks
-        result = supabase.table('stocks').select('symbol, exchange').is_('exchange', 'null').range(offset, offset + batch_size - 1).execute()
+        result = supabase.table('raw_stocks').select('symbol, exchange').is_('exchange', 'null').range(offset, offset + batch_size - 1).execute()
 
         if not result.data:
             break
@@ -91,7 +91,7 @@ def backfill_exchanges(batch_size=1000):
 
     # Show exchange distribution
     print(f"\n📊 Exchange distribution after backfill:")
-    result = supabase.table('stocks').select('exchange', count='exact').execute()
+    result = supabase.table('raw_stocks').select('exchange', count='exact').execute()
 
     exchange_counts = {}
     for stock in result.data:

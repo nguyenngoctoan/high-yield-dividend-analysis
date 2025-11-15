@@ -169,7 +169,7 @@ def get_excluded_symbols():
         return set()
 
 def add_to_excluded(symbol, reason):
-    """Add a symbol to the excluded table and remove from stocks table, but protect portfolio symbols."""
+    """Add a symbol to the excluded table and remove from raw_stocks table, but protect portfolio symbols."""
     try:
         # Check if symbol is in any portfolio - if so, don't exclude it
         portfolio_symbols = get_portfolio_symbols()
@@ -189,11 +189,11 @@ def add_to_excluded(symbol, reason):
                     (symbol, reason, datetime.now())
                 )
 
-                # Remove from stocks table
-                cursor.execute("DELETE FROM stocks WHERE symbol = %s", (symbol,))
+                # Remove from raw_stocks table
+                cursor.execute("DELETE FROM raw_stocks WHERE symbol = %s", (symbol,))
 
                 conn.commit()
-                logger.debug(f"Added {symbol} to excluded list and removed from stocks: {reason}")
+                logger.debug(f"Added {symbol} to excluded list and removed from raw_stocks: {reason}")
     except Exception as e:
         logger.error(f"Error adding {symbol} to excluded: {e}")
 
@@ -239,7 +239,7 @@ def get_all_symbols():
                     # Get symbols that are NOT in excluded list OR are portfolio symbols
                     placeholders = ','.join(['%s'] * len(portfolio_symbols))
                     cursor.execute(f"""
-                        SELECT symbol FROM stocks
+                        SELECT symbol FROM raw_stocks
                         WHERE (
                             symbol NOT IN (
                                 SELECT symbol FROM stocks_excluded
@@ -251,7 +251,7 @@ def get_all_symbols():
                 else:
                     # No portfolio symbols, use original query
                     cursor.execute("""
-                        SELECT symbol FROM stocks
+                        SELECT symbol FROM raw_stocks
                         WHERE symbol NOT IN (
                             SELECT symbol FROM stocks_excluded
                         )
@@ -284,7 +284,7 @@ def get_latest_dates(symbol):
                 # Get latest price date
                 cursor.execute("""
                     SELECT MAX(date) as latest_price_date
-                    FROM stock_prices
+                    FROM raw_stock_prices
                     WHERE symbol = %s
                 """, (symbol,))
                 price_result = cursor.fetchone()
@@ -818,7 +818,7 @@ def main():
 
     with get_postgres_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(DISTINCT symbol) as symbols, COUNT(*) as records FROM stock_prices")
+            cursor.execute("SELECT COUNT(DISTINCT symbol) as symbols, COUNT(*) as records FROM raw_stock_prices")
             price_stats = cursor.fetchone()
 
             cursor.execute("SELECT COUNT(DISTINCT symbol) as symbols, COUNT(*) as records FROM stock_dividends")

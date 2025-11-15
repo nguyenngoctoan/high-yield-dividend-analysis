@@ -19,8 +19,9 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Global Supabase client instance
+# Global Supabase client instances
 _supabase_client = None
+_supabase_admin_client = None
 
 def get_supabase_client() -> Optional[Client]:
     """Get or create a Supabase client instance."""
@@ -42,6 +43,28 @@ def get_supabase_client() -> Optional[Client]:
             return None
 
     return _supabase_client
+
+def get_supabase_admin_client() -> Optional[Client]:
+    """Get or create a Supabase admin client instance with service_role permissions."""
+    global _supabase_admin_client
+
+    if _supabase_admin_client is None:
+        try:
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_service_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+
+            if not supabase_url or not supabase_service_key:
+                logger.error("❌ Supabase service role credentials not found in environment")
+                logger.error("   Make sure SUPABASE_SERVICE_ROLE_KEY is set in .env file")
+                return None
+
+            _supabase_admin_client = create_client(supabase_url, supabase_service_key)
+            logger.info("✅ Supabase admin client initialized (service_role)")
+        except Exception as e:
+            logger.error(f"❌ Error creating Supabase admin client: {e}")
+            return None
+
+    return _supabase_admin_client
 
 def test_supabase_connection() -> bool:
     """Test Supabase connection and return success status."""
@@ -68,7 +91,7 @@ def ensure_stocks_excluded_table() -> bool:
 
         # Try to query the table
         try:
-            result = supabase.table('raw_stocks_excluded').select('symbol').limit(1).execute()
+            result = supabase.table('divv_stocks_excluded').select('symbol').limit(1).execute()
             logger.info("✅ raw_stocks_excluded table already exists")
             return True
         except Exception as e:
@@ -417,10 +440,6 @@ def supabase_upsert(table: str, data: Union[Dict, List[Dict]], batch_size: int =
                 if table == 'raw_stock_prices':
                     # raw_stock_prices has unique constraint on (symbol, date)
                     result = supabase.table(table).upsert(batch, on_conflict='symbol,date').execute()
-                elif table == 'raw_stock_prices_hourly':
-                    # raw_stock_prices_hourly has unique constraint on (symbol, timestamp)
-                    # Use insert with upsert=True instead of explicit upsert
-                    result = supabase.table(table).insert(batch, upsert=True).execute()
                 elif table == 'raw_dividends':
                     # raw_dividends has unique constraint on (symbol, ex_date)
                     # Use proper upsert to update existing records

@@ -84,7 +84,7 @@ def backfill_symbol_adj_close(symbol, batch_mode=False):
         supabase = get_supabase_client()
 
         # Get all price records for this symbol that need adj_close
-        result = supabase.table('stock_prices')\
+        result = supabase.table('raw_stock_prices')\
             .select('symbol,date,close')\
             .eq('symbol', symbol)\
             .is_('adj_close', 'null')\
@@ -172,7 +172,7 @@ def backfill_all_symbols(max_workers=10, limit_symbols=None):
     logger.info("\n🔍 Finding symbols with missing adj_close data...")
 
     # Query for symbols with null adj_close
-    result = supabase.table('stock_prices')\
+    result = supabase.table('raw_stock_prices')\
         .select('symbol')\
         .is_('adj_close', 'null')\
         .execute()

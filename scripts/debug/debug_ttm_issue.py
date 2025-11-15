@@ -30,7 +30,7 @@ for symbol in symbols:
     # Get current metrics from database
     cursor.execute("""
         SELECT total_return_ttm, price_change_ttm, dividend_yield, price, frequency
-        FROM stocks
+        FROM raw_stocks
         WHERE symbol = %s
     """, (symbol,))
 
@@ -50,7 +50,7 @@ for symbol in symbols:
         SELECT MIN(date) as first_date,
                MAX(date) as last_date,
                COUNT(*) as total_records
-        FROM stock_prices
+        FROM raw_stock_prices
         WHERE symbol = %s
     """, (symbol,))
 
@@ -70,7 +70,7 @@ for symbol in symbols:
                 date,
                 LAG(date) OVER (ORDER BY date) as prev_date,
                 date - LAG(date) OVER (ORDER BY date) as gap_days
-            FROM stock_prices
+            FROM raw_stock_prices
             WHERE symbol = %s
             ORDER BY date
         )
@@ -91,13 +91,13 @@ for symbol in symbols:
 
     # Get price at first date and last date
     cursor.execute("""
-        SELECT adj_close FROM stock_prices
+        SELECT adj_close FROM raw_stock_prices
         WHERE symbol = %s AND date = %s
     """, (symbol, first_date))
     first_price = float(cursor.fetchone()[0])
 
     cursor.execute("""
-        SELECT adj_close FROM stock_prices
+        SELECT adj_close FROM raw_stock_prices
         WHERE symbol = %s AND date = %s
     """, (symbol, last_date))
     last_price = float(cursor.fetchone()[0])
@@ -119,7 +119,7 @@ for symbol in symbols:
     cursor.execute("""
         SELECT adj_close, date,
                ABS(EXTRACT(EPOCH FROM (date::timestamp - %s::timestamp))) as seconds_diff
-        FROM stock_prices
+        FROM raw_stock_prices
         WHERE symbol = %s
           AND date >= %s
           AND date <= %s
@@ -164,7 +164,7 @@ for symbol in symbols:
     print(f"\n💰 DIVIDENDS:")
     cursor.execute("""
         SELECT COUNT(*), SUM(amount)
-        FROM dividend_history
+        FROM raw_dividends
         WHERE symbol = %s
         AND ex_date >= %s
     """, (symbol, first_date))

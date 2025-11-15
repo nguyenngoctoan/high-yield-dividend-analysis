@@ -54,7 +54,6 @@ Scraping tools for dividend data from various sources:
 - **`scrape_yieldmax.py`** - Scrape YieldMax ETF data
 - **`scrape_cboe_dividends.py`** - Scrape CBOE dividend data
 - **`scrape_nasdaq_dividends.py`** - Scrape NASDAQ dividend data
-- **`scrape_nyse_dividends.py`** - Scrape NYSE dividend data
 - **`scrape_snowball_dividends.py`** - Scrape Snowball Analytics dividend data
 
 ## Portfolio & Analysis (`portfolio/`)

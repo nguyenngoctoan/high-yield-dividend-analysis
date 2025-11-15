@@ -855,7 +855,7 @@ def check_symbols_exist_in_database_batch(symbols):
     logger.info(f"🔍 Checking {len(symbols)} symbols against database (batch operation)...")
     
     try:
-        # Get all symbols from stocks table with pagination
+        # Get all symbols from raw_stocks table with pagination
         existing_stocks = set()
         page_size = 1000
         offset = 0
@@ -1906,9 +1906,9 @@ def process_symbol_prices_hybrid(symbol, max_date=None, force_check=False):
                         'symbol': symbol,
                         'reason': f'Stale API data - last price {days_old} days old ({latest_api_date})'
                     }])
-                    # Remove from stocks table
+                    # Remove from raw_stocks table
                     pg_delete('stocks', where_clause={'condition': 'symbol = %s', 'params': [symbol]})
-                    logger.info(f"✅ {symbol}: Excluded from stocks table (stale API data)")
+                    logger.info(f"✅ {symbol}: Excluded from raw_stocks table (stale API data)")
                 except Exception as e:
                     logger.error(f"❌ {symbol}: Failed to exclude - {e}")
                 return False  # Don't insert stale data
@@ -3484,7 +3484,7 @@ Examples:
         # Step 2: Validate and add new symbols to database if any found
         # In discover mode, always validate discovered symbols
         if new_symbols_to_add:
-            logger.info(f"🔍 Validating {len(new_symbols_to_add)} symbols (including existing symbols from stocks table)...")
+            logger.info(f"🔍 Validating {len(new_symbols_to_add)} symbols (including existing symbols from raw_stocks table)...")
             validated_symbols = []
             excluded_symbols = []
             
@@ -3590,7 +3590,7 @@ Examples:
                         if successful_inserts > 0:
                             logger.info(f"✅ Successfully inserted {successful_inserts} symbols individually")
                 
-                # Handle excluded symbols: remove from stocks table if they exist there, then add to stocks_excluded
+                # Handle excluded symbols: remove from raw_stocks table if they exist there, then add to stocks_excluded
                 if excluded_symbols:
                     excluded_to_insert = []
                     symbols_to_remove_from_stocks = []
@@ -3607,7 +3607,7 @@ Examples:
                                                          limit=1)
                             if existing_in_stocks:
                                 symbols_to_remove_from_stocks.append(symbol)
-                                logger.debug(f"🗑️  {symbol}: Removing from stocks table (failed validation)")
+                                logger.debug(f"🗑️  {symbol}: Removing from raw_stocks table (failed validation)")
                         except Exception as e:
                             logger.debug(f"Error checking {symbol} in stocks table: {e}")
 
@@ -3617,7 +3617,7 @@ Examples:
                         }
                         excluded_to_insert.append(exclusion_record)
 
-                    # Remove failed symbols from stocks table
+                    # Remove failed symbols from raw_stocks table
                     if symbols_to_remove_from_stocks:
                         removed_count = 0
                         for symbol in symbols_to_remove_from_stocks:
@@ -3626,10 +3626,10 @@ Examples:
                                 if success:
                                     removed_count += 1
                             except Exception as e:
-                                logger.error(f"❌ Failed to remove {symbol} from stocks: {e}")
+                                logger.error(f"❌ Failed to remove {symbol} from raw_stocks: {e}")
 
                         if removed_count > 0:
-                            logger.info(f"🗑️  Removed {removed_count} failed symbols from stocks table")
+                            logger.info(f"🗑️  Removed {removed_count} failed symbols from raw_stocks table")
 
                     # Add to stocks_excluded table (use upsert to handle duplicates)
                     try:
@@ -3664,7 +3664,7 @@ Examples:
         logger.info("📊 PRICE UPDATE MODE - INTELLIGENT INCREMENTAL")
         logger.info("="*80)
 
-        # Get all symbols from stocks table
+        # Get all symbols from raw_stocks table
         all_symbols = []
         page_size = 1000
         offset = 0
@@ -3692,7 +3692,7 @@ Examples:
         logger.info("💰 DIVIDEND UPDATE MODE")
         logger.info("="*80)
 
-        # Get all symbols from stocks table
+        # Get all symbols from raw_stocks table
         all_symbols = []
         page_size = 1000
         offset = 0
@@ -3719,7 +3719,7 @@ Examples:
         logger.info("📋 ETF METADATA UPDATE MODE")
         logger.info("="*80)
 
-        # Get all symbols from stocks table
+        # Get all symbols from raw_stocks table
         all_symbols = []
         page_size = 1000
         offset = 0

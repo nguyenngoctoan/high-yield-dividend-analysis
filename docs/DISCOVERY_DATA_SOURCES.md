@@ -73,13 +73,7 @@ These scrapers discover symbols from dividend calendars and specialized lists:
 - **Focus**: NASDAQ-listed dividend stocks
 - **Type**: Tech and growth stocks with dividends
 
-#### 4. NYSE Scraper
-**File**: `scripts/scrape_nyse_dividends.py`
-- **Source**: NYSE dividend calendar
-- **Focus**: NYSE-listed dividend stocks
-- **Type**: Traditional blue-chip dividend payers
-
-#### 5. Snowball Scraper
+#### 4. Snowball Scraper
 **File**: `scripts/scrape_snowball_dividends.py`
 - **Source**: Snowball Finance (popular dividend lists)
 - **Category**: `us-popular-div`

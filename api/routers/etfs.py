@@ -49,7 +49,7 @@ async def get_etf_details(
         etf = etf_result.data[0]
 
         # Get holdings count
-        holdings_result = supabase.table('raw_etf_holdings').select('*', count='exact')\
+        holdings_result = supabase.table('divv_etf_holdings').select('*', count='exact')\
             .eq('etf_symbol', symbol.upper())\
             .execute()
 
@@ -117,7 +117,7 @@ async def get_etf_holdings(
         etf = etf_result.data[0]
 
         # Fetch holdings
-        holdings_result = supabase.table('raw_etf_holdings').select('*')\
+        holdings_result = supabase.table('divv_etf_holdings').select('*')\
             .eq('etf_symbol', symbol.upper())\
             .order('weight', desc=True)\
             .limit(limit)\
@@ -144,7 +144,7 @@ async def get_etf_holdings(
                     sector_allocation.get(row['sector'], 0) + row['weight']
 
         # Get total holdings count
-        total_count_result = supabase.table('raw_etf_holdings').select('*', count='exact')\
+        total_count_result = supabase.table('divv_etf_holdings').select('*', count='exact')\
             .eq('etf_symbol', symbol.upper())\
             .execute()
 

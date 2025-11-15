@@ -1,3 +1,7 @@
+'use client';
+
+import { API_CONFIG, STOCK_COUNT } from '@/lib/config';
+
 export default function APIIntroduction() {
   return (
     <div className="prose max-w-none">
@@ -9,10 +13,10 @@ export default function APIIntroduction() {
       <div className="bg-blue-50 border border-blue-200 rounded-md p-5 mb-8">
         <h3 className="text-base font-semibold text-gray-900 mb-2">Getting Started</h3>
         <p className="text-sm text-gray-700 mb-4">
-          The API is currently running at <code className="bg-gray-100 px-2 py-0.5 rounded text-sm">http://localhost:8000</code>
+          The API is currently running at <code className="bg-gray-100 px-2 py-0.5 rounded text-sm">{API_CONFIG.baseUrl}</code>
         </p>
         <a
-          href="http://localhost:8000/v1/docs"
+          href={`${API_CONFIG.baseUrl}/v1/docs`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md font-medium hover:bg-blue-700 no-underline"
@@ -22,14 +26,14 @@ export default function APIIntroduction() {
       </div>
 
       <h2 className="text-xl font-semibold mt-12 mb-4 pb-2 border-b border-gray-200">Base URL</h2>
-      <pre className="bg-gray-50 border border-gray-200 p-4 rounded-md"><code>http://localhost:8000/v1</code></pre>
+      <pre className="bg-gray-50 border border-gray-200 p-4 rounded-md"><code>{API_CONFIG.baseUrl}/v1</code></pre>
 
       <h2 className="text-xl font-semibold mt-12 mb-4 pb-2 border-b border-gray-200">Key Features</h2>
 
       <div className="grid grid-cols-2 gap-4 my-6 not-prose">
         <FeatureBox
           title="Comprehensive Data"
-          description="Access 24,842+ stocks with real-time prices, dividend history, and future payment schedules"
+          description={`Access ${STOCK_COUNT} stocks with real-time prices, dividend history, and future payment schedules`}
         />
         <FeatureBox
           title="Dividend Aristocrats & Kings"
@@ -128,28 +132,7 @@ export default function APIIntroduction() {
           </div>
         </div>
 
-        {/* Price Data */}
-        <div>
-          <h3 className="text-base font-semibold text-gray-900 mb-3">Price Data</h3>
-          <div className="space-y-3">
-            <EndpointCard
-              method="GET"
-              path="/v1/prices/{symbol}"
-              description="Get price history with preset ranges (1d, 1m, ytd, max)"
-            />
-            <EndpointCard
-              method="GET"
-              path="/v1/prices/{symbol}/latest"
-              description="Get latest price snapshot"
-            />
-            <EndpointCard
-              method="GET"
-              path="/v1/prices/{symbol}/hourly"
-              description="📊 NEW: Get intraday hourly OHLCV data with VWAP"
-              isNew
-            />
-          </div>
-        </div>
+        {/* Price Data - Removed, prices available via /v1/stocks/{symbol}/quote */}
 
         {/* Pre-built Screeners */}
         <div>
@@ -209,6 +192,35 @@ export default function APIIntroduction() {
               method="GET"
               path="/v1/etfs/strategies"
               description="Get ETF strategy classifications (80+ types)"
+            />
+          </div>
+        </div>
+
+        {/* Search */}
+        <div>
+          <h3 className="text-base font-semibold text-gray-900 mb-3">🔍 Search</h3>
+          <div className="space-y-3">
+            <EndpointCard
+              method="GET"
+              path="/v1/search"
+              description="Search stocks by symbol, company name, or sector with fuzzy matching"
+              isNew
+            />
+          </div>
+        </div>
+
+        {/* Bulk Operations */}
+        <div>
+          <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <span>⚡ Bulk Operations</span>
+            <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-semibold">PRO+</span>
+          </h3>
+          <div className="space-y-3">
+            <EndpointCard
+              method="POST"
+              path="/v1/bulk/stocks"
+              description="Fetch data for up to 1,000 symbols in a single request (10-100x fewer API calls)"
+              isNew
             />
           </div>
         </div>
@@ -279,7 +291,7 @@ export default function APIIntroduction() {
         <li>Browse the <strong>Core Resources</strong> section for detailed endpoint documentation</li>
         <li>Check out <strong>Screeners</strong> for pre-built dividend stock filters</li>
         <li>Explore <strong>Analytics</strong> for portfolio analysis features</li>
-        <li>Visit the <a href="http://localhost:8000/v1/docs" target="_blank" rel="noopener noreferrer">Interactive API Reference</a> to test endpoints</li>
+        <li>Visit the <a href={`${API_CONFIG.baseUrl}/v1/docs`} target="_blank" rel="noopener noreferrer">Interactive API Reference</a> to test endpoints</li>
       </ul>
     </div>
   );

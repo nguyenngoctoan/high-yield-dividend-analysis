@@ -77,6 +77,60 @@ curl "http://localhost:8000/v1/stocks/AAPL"
 }
 ```
 
+### `GET /v1/stocks/{symbol}/quote` ⭐ NEW
+**Get real-time quote with GOOGLEFINANCE() parity**
+
+This endpoint provides **100% feature parity** with Google Sheets `GOOGLEFINANCE()` function, plus superior dividend data.
+
+**Equivalent GOOGLEFINANCE attributes:**
+- price, priceopen, high, low, volume, marketcap, pe, eps
+- high52, low52, change, changepct, shares
+- avgvol, sma50, sma200, dividendyield
+
+**Example Request:**
+```bash
+curl "http://localhost:8000/v1/stocks/AAPL/quote"
+```
+
+**Example Response:**
+```json
+{
+  "symbol": "AAPL",
+  "price": 275.06,
+  "open": 271.05,
+  "dayHigh": 275.96,
+  "dayLow": 269.60,
+  "previousClose": 272.95,
+  "change": -0.54,
+  "changePercent": -0.20,
+  "volume": 52000000,
+  "avgVolume": 50386496,
+  "priceAvg50": 255.93,
+  "priceAvg200": 225.38,
+  "yearHigh": 277.32,
+  "yearLow": 169.21,
+  "marketCap": 4200000000000,
+  "peRatio": 36.8,
+  "eps": 7.47,
+  "sharesOutstanding": 14776353000,
+  "company": "Apple Inc.",
+  "exchange": "NASDAQ",
+  "sector": "Technology",
+  "dividendYield": 0.47,
+  "dividendAmount": 1.00
+}
+```
+
+**Features:**
+- ✅ All GOOGLEFINANCE() data in single call
+- ✅ 50-day and 200-day moving averages
+- ✅ 52-week high/low ranges
+- ✅ Earnings per share (EPS)
+- ✅ Shares outstanding
+- ✅ Superior dividend data
+
+**See also:** [GOOGLEFINANCE_PARITY.md](./GOOGLEFINANCE_PARITY.md) for complete documentation
+
 ---
 
 ## 💰 Dividends Endpoints

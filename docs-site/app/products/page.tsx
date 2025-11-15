@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Code, Table, Plug, Zap, Shield, TrendingUp } from 'lucide-react'
+import { STOCK_COUNT } from '@/lib/config'
 
 export default function ProductsPage() {
   return (
@@ -44,7 +45,7 @@ export default function ProductsPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <TrendingUp className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-slate-700">24,000+ stocks and ETFs covered</span>
+                  <span className="text-slate-700">{STOCK_COUNT} stocks and ETFs covered</span>
                 </div>
               </div>
 

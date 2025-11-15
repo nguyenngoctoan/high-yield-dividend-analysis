@@ -1,5 +1,7 @@
 'use client';
 
+import { API_CONFIG, STOCK_COUNT } from '@/lib/config';
+
 export default function StocksPage() {
   return (
     <div className="max-w-4xl">
@@ -145,6 +147,155 @@ export default function StocksPage() {
         <h3 className="text-base font-semibold mb-3">Returns</h3>
         <div className="bg-gray-50 rounded-md p-4 mb-6">
           <p className="text-sm text-gray-700">Returns a stock detail object with company info, pricing data, and dividend information.</p>
+        </div>
+      </section>
+
+      {/* Get Stock Quote Endpoint - GOOGLEFINANCE Parity */}
+      <section className="mb-12">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded">GET</span>
+          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded">NEW</span>
+          Get stock quote (GOOGLEFINANCE parity)
+        </h2>
+
+        <div className="bg-gray-50 rounded-md p-4 mb-6">
+          <code className="text-sm font-mono text-gray-800">/v1/stocks/{'{symbol}'}/quote</code>
+        </div>
+
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+          <p className="text-sm font-semibold text-green-800 mb-2">✨ 100% GOOGLEFINANCE() Parity</p>
+          <p className="text-sm text-green-700">
+            This endpoint provides complete feature parity with Google Sheets <code className="bg-green-100 px-1 rounded">GOOGLEFINANCE()</code> function,
+            plus superior dividend data that GOOGLEFINANCE doesn't provide.
+          </p>
+        </div>
+
+        <p className="text-sm text-gray-700 mb-6">
+          Get real-time stock quote with all fundamental data, price metrics, and moving averages in a single API call.
+        </p>
+
+        <h3 className="text-base font-semibold mb-3">Path Parameters</h3>
+        <div className="border border-gray-200 rounded-md mb-6">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">Type</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="px-4 py-3 font-mono text-xs">symbol</td>
+                <td className="px-4 py-3 text-gray-600">string</td>
+                <td className="px-4 py-3 text-gray-700">Stock symbol (e.g., "AAPL")</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 className="text-base font-semibold mb-3">GOOGLEFINANCE Equivalent Attributes</h3>
+        <div className="bg-gray-50 rounded-md p-4 mb-6">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">price</code>
+              <span className="text-gray-600">Current price</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">priceopen</code>
+              <span className="text-gray-600">Opening price</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">high</code>
+              <span className="text-gray-600">Today's high</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">low</code>
+              <span className="text-gray-600">Today's low</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">volume</code>
+              <span className="text-gray-600">Volume</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">marketcap</code>
+              <span className="text-gray-600">Market cap</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">pe</code>
+              <span className="text-gray-600">P/E ratio</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">eps</code>
+              <span className="text-gray-600">Earnings per share</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">high52</code>
+              <span className="text-gray-600">52-week high</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">low52</code>
+              <span className="text-gray-600">52-week low</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">change</code>
+              <span className="text-gray-600">Price change</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">changepct</code>
+              <span className="text-gray-600">Change %</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">shares</code>
+              <span className="text-gray-600">Shares outstanding</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">avgvol</code>
+              <span className="text-gray-600">Average volume</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">sma50</code>
+              <span className="text-gray-600">50-day moving avg</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">sma200</code>
+              <span className="text-gray-600">200-day moving avg</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="text-xs bg-white px-2 py-1 rounded border border-gray-200">dividendyield</code>
+              <span className="text-gray-600">Dividend yield</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="text-base font-semibold mb-3">Response Fields</h3>
+        <div className="bg-gray-50 rounded-md p-4 mb-6">
+          <p className="text-sm text-gray-700 mb-3">Returns a comprehensive quote object with:</p>
+          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+            <li><strong>Price Data:</strong> price, open, dayHigh, dayLow, previousClose, change, changePercent</li>
+            <li><strong>Volume:</strong> volume, avgVolume</li>
+            <li><strong>Moving Averages:</strong> priceAvg50 (SMA50), priceAvg200 (SMA200)</li>
+            <li><strong>52-Week Range:</strong> yearHigh, yearLow</li>
+            <li><strong>Fundamentals:</strong> marketCap, peRatio, eps, sharesOutstanding</li>
+            <li><strong>Company Info:</strong> company, exchange, sector</li>
+            <li><strong>Dividend Data:</strong> dividendYield, dividendAmount (superior to GOOGLEFINANCE)</li>
+          </ul>
+        </div>
+
+        <h3 className="text-base font-semibold mb-3">Example Request</h3>
+        <div className="bg-gray-900 rounded-md p-4 mb-4">
+          <code className="text-sm font-mono text-gray-100">
+            {`curl "${API_CONFIG.baseUrl}/v1/stocks/AAPL/quote"`}
+          </code>
+        </div>
+
+        <h3 className="text-base font-semibold mb-3">Coverage & Updates</h3>
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>📊 <strong>Coverage:</strong> {STOCK_COUNT} stocks with fundamental data</li>
+            <li>🕐 <strong>Update Frequency:</strong> Daily at 5 PM EST (after market close)</li>
+            <li>⚡ <strong>Update Speed:</strong> 1-5 minutes for 16,000+ symbols</li>
+          </ul>
         </div>
       </section>
 

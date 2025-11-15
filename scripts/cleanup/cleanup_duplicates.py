@@ -2,7 +2,7 @@
 """
 Cleanup Duplicates Script
 
-Removes duplicate records from stock_prices and dividend_history tables.
+Removes duplicate records from raw_stock_prices and dividend_history tables.
 Keeps the most recent record (highest created_at/id) for each unique key.
 """
 
@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 load_dotenv()
 
 def cleanup_duplicates():
-    """Remove duplicates from stock_prices and dividend_history tables."""
+    """Remove duplicates from raw_stock_prices and dividend_history tables."""
 
     conn = psycopg2.connect(
         host='localhost',

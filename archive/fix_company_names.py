@@ -137,7 +137,7 @@ def fix_company_names_batch(limit=100):
     print(f"Fixing company names (batch size: {limit})...")
     
     # Get stocks where company_name equals name (the bug)
-    result = supabase.table('stocks').select('symbol, name, company_name').limit(limit).execute()
+    result = supabase.table('raw_stocks').select('symbol, name, company_name').limit(limit).execute()
     
     if not result.data:
         print("No data found to fix")
@@ -169,7 +169,7 @@ def fix_company_names_batch(limit=100):
     # Apply updates if any
     if updates:
         try:
-            result = supabase.table('stocks').upsert(updates).execute()
+            result = supabase.table('raw_stocks').upsert(updates).execute()
             print(f"✅ Successfully updated {len(updates)} company names")
         except Exception as e:
             print(f"❌ Error updating company names: {e}")

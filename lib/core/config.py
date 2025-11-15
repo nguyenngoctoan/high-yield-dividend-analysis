@@ -60,7 +60,6 @@ class DatabaseConfig:
     TABLE_DIVIDEND_HISTORY = "raw_dividends"
     TABLE_DIVIDEND_CALENDAR = "raw_future_dividends"
     TABLE_EXCLUDED_SYMBOLS = "raw_stocks_excluded"
-    TABLE_STOCK_PRICES_HOURLY = "raw_stock_prices_hourly"
     TABLE_STOCK_SPLITS = "raw_stock_splits"
 
     # Batch Processing

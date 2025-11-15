@@ -66,13 +66,13 @@ def backfill_exchanges(target_exchange=None, batch_size=1000):
     if target_exchange:
         # Get symbols with NULL or specific exchange
         print(f"   Target: NULL or {target_exchange} exchanges")
-        result1 = supabase.table('stocks').select('symbol, exchange').is_('exchange', 'null').execute()
-        result2 = supabase.table('stocks').select('symbol, exchange').eq('exchange', target_exchange).execute()
+        result1 = supabase.table('raw_stocks').select('symbol, exchange').is_('exchange', 'null').execute()
+        result2 = supabase.table('raw_stocks').select('symbol, exchange').eq('exchange', target_exchange).execute()
         symbols_to_check = result1.data + result2.data
     else:
         # Get ALL symbols with NULL exchange
         print("   Target: NULL exchanges only")
-        result = supabase.table('stocks').select('symbol, exchange').is_('exchange', 'null').execute()
+        result = supabase.table('raw_stocks').select('symbol, exchange').is_('exchange', 'null').execute()
         symbols_to_check = result.data
 
     print(f"✅ Found {len(symbols_to_check):,} symbols to check")
@@ -136,7 +136,7 @@ def backfill_exchanges(target_exchange=None, batch_size=1000):
     # Show final distribution
     print("\n📈 Final Exchange Distribution:")
     print("=" * 60)
-    result = supabase.table('stocks').select('exchange', count='exact').execute()
+    result = supabase.table('raw_stocks').select('exchange', count='exact').execute()
 
     exchanges = {}
     for stock in result.data:

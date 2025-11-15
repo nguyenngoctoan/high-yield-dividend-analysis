@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Header from '@/components/Header';
+import { API_CONFIG, STOCK_COUNT } from '@/lib/config';
 import './hero-animation.css';
 
 export default function HomePage() {
@@ -155,19 +156,22 @@ export default function HomePage() {
 
         <div className="container mx-auto px-6 pt-32 pb-20 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-block mb-6 px-4 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-full text-sm font-medium">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-              Production Ready
+          <div className="inline-block mb-6 px-4 py-1.5 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-full text-sm font-medium">
+            <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent font-semibold">
+              The Dividend Data Specialist
             </span>
           </div>
           <h1 className="text-7xl font-bold mb-6 tracking-tight">
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
               Divv API
             </span>
           </h1>
-          <p className="text-xl text-gray-700 mb-10 leading-relaxed max-w-2xl mx-auto">
-            A modern, fast API for dividend investors. Get stock data, dividend calendars,
-            and analytics in milliseconds.
+          <p className="text-2xl text-gray-800 mb-4 leading-relaxed max-w-3xl mx-auto font-semibold">
+            The only API built exclusively for dividend investors
+          </p>
+          <p className="text-lg text-gray-600 mb-10 leading-relaxed max-w-2xl mx-auto">
+            Google Sheets + Excel compatible. Dividend Aristocrats. 50+ years of history.
+            Sub-100ms responses. Built by income investors, for income investors.
           </p>
           <div className="flex gap-4 justify-center">
             <Link
@@ -177,7 +181,7 @@ export default function HomePage() {
               Documentation
             </Link>
             <a
-              href="http://localhost:8000/health"
+              href={`${API_CONFIG.baseUrl}/health`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-3.5 bg-white border-2 border-purple-200 text-gray-700 rounded-lg font-medium hover:border-purple-400 hover:text-purple-700 transition-all"
@@ -191,173 +195,509 @@ export default function HomePage() {
         {/* Stats */}
         <div className="container mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-24 max-w-4xl mx-auto">
-          <StatCard number="24,842" label="Stocks" />
-          <StatCard number="11" label="Endpoints" />
+          <StatCard number={STOCK_COUNT} label="Dividend Stocks" />
+          <StatCard number="50+ yrs" label="History" />
           <StatCard number="<100ms" label="Response" />
-          <StatCard number="100%" label="Uptime" />
+          <StatCard number="FREE" label="For Most Users" highlight={true} />
         </div>
         </div>
 
-        {/* What's New Banner */}
+        {/* Free Forever Banner */}
         <div className="container mx-auto px-6">
         <div className="mt-24 max-w-5xl mx-auto">
-          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-8 border border-purple-200">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+          <div className="bg-gradient-to-br from-green-600 to-blue-600 rounded-2xl p-12 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+
+            <div className="relative z-10 text-center">
+              <div className="text-6xl mb-6">💰</div>
+              <h2 className="text-4xl font-bold mb-4">
+                Track Prices & Dividends for Free
+              </h2>
+              <p className="text-2xl text-green-100 mb-8">
+                Free tier gives you the essentials. Upgrade for advanced metrics.
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-8">
+                <div className="bg-white/10 backdrop-blur rounded-xl p-6">
+                  <div className="text-4xl font-bold mb-2">20</div>
+                  <div className="text-green-100">Stocks Tracked</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-6">
+                  <div className="text-4xl font-bold mb-2">5x/day</div>
+                  <div className="text-green-100">Price Checks</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-6">
+                  <div className="text-4xl font-bold mb-2">$0</div>
+                  <div className="text-green-100">Forever</div>
                 </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  What's New in v1.1.0
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  Enhanced API with industry-leading features: preset date ranges, flexible filtering, and more control over your queries.
+
+              <div className="bg-white/20 backdrop-blur rounded-lg p-6 max-w-2xl mx-auto mb-6">
+                <p className="text-lg font-semibold mb-2">Free Tier Includes:</p>
+                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>5,000 API calls/month</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Price & dividend data</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Google Sheets integration</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Excel VBA module</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>No credit card required</span>
+                  </div>
+                </div>
+                <p className="text-xs text-green-200 mt-4 border-t border-white/20 pt-4">
+                  <Link href="/pricing" className="underline font-semibold">Upgrade to Starter ($9/mo)</Link> for full attribute access: PE ratio, volume, market cap, dividend history, Aristocrat detection, and more
                 </p>
-                <div className="grid md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700">Preset date ranges</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700">Sort control</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700">Adjusted prices</span>
-                  </div>
-                </div>
               </div>
+
+              <p className="text-sm text-green-200 mb-6">
+                Your 20-stock portfolio checking prices 5x/day = ~3,000 calls/month (30% of free tier)
+              </p>
+
+              <Link
+                href="/integrations/google-sheets"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-green-700 rounded-lg font-bold hover:bg-green-50 transition-all shadow-xl text-lg"
+              >
+                <span>Get Started Free</span>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
           </div>
         </div>
         </div>
 
-        {/* Features Grid */}
+        {/* Google Sheets & Excel Integration */}
         <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto">
-          <FeatureCard
-            title="Fast & Reliable"
-            description="Sub-100ms response times with 100% uptime"
-            gradient="from-blue-600 to-indigo-600"
-          />
-          <FeatureCard
-            title="Complete Data"
-            description="24,000+ stocks with dividend history"
-            gradient="from-indigo-600 to-purple-600"
-          />
-          <FeatureCard
-            title="Easy to Use"
-            description="RESTful API with clear documentation"
-            gradient="from-purple-600 to-blue-600"
-          />
+        <div className="mt-24 max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Drop-in Replacement for GOOGLEFINANCE()
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600">
+              100% parity with Google Sheets, but with superior dividend data
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Before: GOOGLEFINANCE */}
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-300 relative">
+              <div className="absolute -top-4 left-8 px-4 py-1 bg-gray-500 text-white text-xs font-medium rounded-full">
+                BEFORE
+              </div>
+              <h3 className="text-lg font-bold text-gray-700 mb-4">Google Sheets GOOGLEFINANCE()</h3>
+              <pre className="text-sm font-mono text-gray-600 overflow-x-auto bg-gray-50 p-4 rounded-lg">
+{`=GOOGLEFINANCE("AAPL", "price")
+=GOOGLEFINANCE("AAPL", "high52")
+=GOOGLEFINANCE("AAPL", "low52")
+=GOOGLEFINANCE("AAPL", "pe")
+
+❌ Multiple formulas needed
+❌ Limited dividend data
+❌ Stale data
+❌ No Aristocrats/Kings`}
+              </pre>
+            </div>
+
+            {/* After: Divv API */}
+            <div className="bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 rounded-2xl p-8 border-2 border-green-500 relative shadow-lg">
+              <div className="absolute -top-4 left-8 px-4 py-1 bg-green-600 text-white text-xs font-medium rounded-full">
+                AFTER: DIVV()
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Same Syntax. Better Data.</h3>
+              <pre className="text-sm font-mono text-gray-800 overflow-x-auto bg-white p-4 rounded-lg border border-green-200">
+{`=DIVV("AAPL", "price")
+=DIVV("AAPL", "yearHigh")
+=DIVV("AAPL", "dividendYield")
+=DIVV("AAPL", "peRatio")
+
+✅ Familiar GOOGLEFINANCE() syntax
+✅ Complete dividend history
+✅ Aristocrats/Kings included
+✅ 50+ years of history
+✅ Free tier: 5,000 calls/mo`}
+              </pre>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center flex gap-4 justify-center">
+            <Link
+              href="/integrations/google-sheets"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-blue-700 transition-all shadow-lg"
+            >
+              <span>Google Sheets Setup →</span>
+            </Link>
+            <a
+              href="/DIVV.gs"
+              download
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-green-600 text-green-700 rounded-lg font-medium hover:bg-green-50 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+              <span>Download Script</span>
+            </a>
+          </div>
+        </div>
+        </div>
+
+        {/* Dividend-Specific Features */}
+        <div className="container mx-auto px-6">
+        <div className="mt-24 max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Why Dividend Investors Choose Divv
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600">
+              Features you won't find in generic financial APIs
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <DividendFeatureCard
+              icon="👑"
+              title="Aristocrats & Kings"
+              description="Instantly identify stocks with 25+ or 50+ years of consecutive dividend increases. No manual calculation needed."
+              highlight="25+ years tracked automatically"
+            />
+            <DividendFeatureCard
+              icon="📅"
+              title="Complete Dividend Calendar"
+              description="Historical dividends + future ex-dates. Track monthly, quarterly, and special dividends with precise payment schedules."
+              highlight="50+ years of history"
+            />
+            <DividendFeatureCard
+              icon="📊"
+              title="Dividend Metrics"
+              description="Yield, payout ratio, growth rates, sustainability scores. Everything an income investor needs in one endpoint."
+              highlight="All metrics, one API call"
+            />
+            <DividendFeatureCard
+              icon="🎯"
+              title="Pre-Built Screeners"
+              description="High-yield, monthly payers, Aristocrats, Kings, high-growth dividends. Start analyzing immediately."
+              highlight="5+ curated screeners"
+            />
+            <DividendFeatureCard
+              icon="📈"
+              title="ETF Income Analysis"
+              description="Track covered call ETFs, REITs, BDCs, and income funds. AUM, expense ratios, holdings composition."
+              highlight="8,000+ ETFs covered"
+            />
+            <DividendFeatureCard
+              icon="⚡"
+              title="Spreadsheet Ready"
+              description="Google Sheets + Excel compatible. GOOGLEFINANCE() parity means drop-in replacement for your existing models."
+              highlight="Zero migration friction"
+            />
+          </div>
+        </div>
+        </div>
+
+        {/* Competitive Advantage */}
+        <div className="container mx-auto px-6">
+        <div className="mt-24 max-w-6xl mx-auto">
+          <div className="bg-gradient-to-br from-green-900 to-blue-900 rounded-2xl p-12 text-white">
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-bold mb-4">
+                Why Not Just Use a Generic API?
+              </h2>
+              <p className="text-xl text-green-100">
+                Because dividend data has unique requirements that generic APIs ignore
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 mb-8">
+              <div className="bg-white/10 rounded-xl p-6 backdrop-blur">
+                <div className="text-red-300 font-bold mb-3 text-sm">❌ GENERIC APIs (Polygon, Alpha Vantage, FMP)</div>
+                <ul className="space-y-2 text-white/90">
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">•</span>
+                    <span>No Aristocrat/King identification</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">•</span>
+                    <span>Missing historical dividends (&gt;10 years)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">•</span>
+                    <span>No dividend growth metrics</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">•</span>
+                    <span>Expensive real-time data you don't need</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-400">•</span>
+                    <span>$50-200/month entry pricing</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-white/10 rounded-xl p-6 backdrop-blur border-2 border-green-400">
+                <div className="text-green-300 font-bold mb-3 text-sm">✅ DIVV API (Dividend Specialist)</div>
+                <ul className="space-y-2 text-white">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span className="font-medium">Automatic Aristocrat/King detection</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span className="font-medium">50+ years of dividend history</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span className="font-medium">Complete growth & sustainability metrics</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span className="font-medium">EOD data optimized for income investing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-400">✓</span>
+                    <span className="font-medium">$9/month (5-20x cheaper)</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-300 mb-4">
+                Save 80-95% vs. generic APIs. Get better dividend data.
+              </p>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 rounded-lg font-bold hover:bg-green-50 transition-all shadow-xl"
+              >
+                <span>See Pricing Comparison</span>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
         </div>
         </div>
 
         {/* Exchanges Supported */}
         <div className="container mx-auto px-6">
-        <div className="mt-24 max-w-5xl mx-auto">
+        <div className="mt-24 max-w-6xl mx-auto">
+          <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-3xl p-12 text-white relative overflow-hidden">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl -ml-48 -mb-48"></div>
+
+            <div className="relative z-10">
+              <div className="text-center mb-12">
+                <div className="inline-block mb-4 px-4 py-2 bg-white/10 backdrop-blur rounded-full">
+                  <span className="text-blue-200 text-sm font-semibold">🌎 GLOBAL COVERAGE</span>
+                </div>
+                <h2 className="text-4xl font-bold mb-4">
+                  {STOCK_COUNT} Dividend Stocks
+                </h2>
+                <p className="text-xl text-blue-100">
+                  Comprehensive coverage across North American exchanges
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                {/* US Exchanges Card */}
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-2xl">
+                      🇺🇸
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">US Exchanges</h3>
+                      <p className="text-blue-200 text-sm">Major Markets</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      <span>NYSE • NASDAQ • AMEX</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                      <span>CBOE • BATS • IEX</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Canadian Exchanges Card */}
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center text-2xl">
+                      🇨🇦
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Canadian</h3>
+                      <p className="text-blue-200 text-sm">TSX & More</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                      <span>TSX • TSX Venture</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                      <span>CSE • NEO Exchange</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* OTC Markets Card */}
+                <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-lg flex items-center justify-center text-2xl">
+                      📊
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">OTC Markets</h3>
+                      <p className="text-blue-200 text-sm">Alternative Trading</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span>OTCQX • OTCQB</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-teal-400 rounded-full"></div>
+                      <span>Pink Sheets • Grey Market</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/5 backdrop-blur rounded-xl p-4 text-center border border-white/10">
+                  <div className="text-3xl font-bold text-blue-300 mb-1">14</div>
+                  <div className="text-xs text-blue-200 uppercase tracking-wide">Exchanges</div>
+                </div>
+                <div className="bg-white/5 backdrop-blur rounded-xl p-4 text-center border border-white/10">
+                  <div className="text-3xl font-bold text-purple-300 mb-1">24K+</div>
+                  <div className="text-xs text-blue-200 uppercase tracking-wide">Symbols</div>
+                </div>
+                <div className="bg-white/5 backdrop-blur rounded-xl p-4 text-center border border-white/10">
+                  <div className="text-3xl font-bold text-green-300 mb-1">Real-time</div>
+                  <div className="text-xs text-blue-200 uppercase tracking-wide">Updates</div>
+                </div>
+                <div className="bg-white/5 backdrop-blur rounded-xl p-4 text-center border border-white/10">
+                  <div className="text-3xl font-bold text-orange-300 mb-1">50+ yrs</div>
+                  <div className="text-xs text-blue-200 uppercase tracking-wide">History</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        {/* Use Case Examples */}
+        <div className="container mx-auto px-6">
+        <div className="mt-24 max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Exchanges Supported
+            <h2 className="text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Built for Income Investors
               </span>
             </h2>
-            <p className="text-gray-600">Comprehensive coverage across major North American exchanges</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-12 border-2 border-purple-100">
-            {/* Major US Exchanges */}
-            <div className="mb-12">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6 text-center">
-                Major US Exchanges
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <ExchangeLogo name="NYSE" fullName="New York Stock Exchange" />
-                <ExchangeLogo name="NASDAQ" fullName="NASDAQ Stock Market" />
-                <ExchangeLogo name="AMEX" fullName="NYSE American" />
-                <ExchangeLogo name="CBOE" fullName="Chicago Board Options Exchange" />
-              </div>
-            </div>
-
-            {/* Alternative Trading Systems */}
-            <div className="mb-12 pb-12 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6 text-center">
-                Alternative Trading Systems
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <ExchangeLogo name="BATS" fullName="BATS Global Markets" />
-                <ExchangeLogo name="EDGX" fullName="EDGX Exchange" />
-                <ExchangeLogo name="BZX" fullName="BATS BZX Exchange" />
-                <ExchangeLogo name="IEX" fullName="Investors Exchange" />
-              </div>
-            </div>
-
-            {/* Canadian Exchanges */}
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6 text-center">
-                Canadian Exchanges
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <ExchangeLogo name="TSX" fullName="Toronto Stock Exchange" />
-                <ExchangeLogo name="TSXV" fullName="TSX Venture Exchange" />
-                <ExchangeLogo name="CSE" fullName="Canadian Securities Exchange" />
-                <ExchangeLogo name="NEO" fullName="NEO Exchange" />
-              </div>
-            </div>
-
-            {/* OTC Markets */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6 text-center">
-                OTC Markets
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 justify-items-center">
-                <ExchangeLogo name="OTCM" fullName="OTC Markets Group" />
-                <ExchangeLogo name="OTCX" fullName="OTC Pink" />
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-8">
-            <p className="text-sm text-gray-600">
-              Coverage includes <span className="font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">24,000+ symbols</span> across all supported exchanges
+            <p className="text-xl text-gray-600">
+              See how dividend investors are using Divv API
             </p>
           </div>
-        </div>
-        </div>
 
-        {/* Code Example */}
-        <div className="container mx-auto px-6">
-        <div className="mt-24 max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Quick Start
-              </span>
-            </h2>
-            <p className="text-gray-600">Get started in seconds with a simple HTTP request</p>
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <UseCaseCard
+              title="Find Dividend Aristocrats"
+              description="Identify stable, reliable dividend growers with 25+ years of consecutive increases"
+              code={`curl "api.divv.com/v1/screeners/dividend-aristocrats?limit=10"
+
+# Returns stocks like:
+# JNJ - 61 years of increases
+# PG - 67 years of increases
+# KO - 61 years of increases`}
+            />
+
+            <UseCaseCard
+              title="Track Monthly Income"
+              description="Build a portfolio with monthly dividend payments for consistent cash flow"
+              code={`curl "api.divv.com/v1/screeners/monthly-payers?min_yield=5"
+
+# Find monthly payers like:
+# JEPI, JEPQ, O, STAG, MAIN
+# Perfect for retirement income`}
+            />
+
+            <UseCaseCard
+              title="Analyze Dividend Growth"
+              description="Find stocks with strong dividend growth rates for compounding income"
+              code={`curl "api.divv.com/v1/stocks/MSFT/metrics"
+
+# Get complete metrics:
+# - Current yield: 0.8%
+# - 5yr growth rate: 10.2%
+# - Payout ratio: 25%
+# - Years of increases: 19`}
+            />
+
+            <UseCaseCard
+              title="Google Sheets Integration"
+              description="Use =DIVV() just like GOOGLEFINANCE() - familiar syntax, better data"
+              code={`// Add to Google Sheets (Tools > Script Editor)
+function DIVV(symbol, attribute) {
+  const url = \`api.divv.com/v1/stocks/\${symbol}/quote\`;
+  const response = UrlFetchApp.fetch(url);
+  const data = JSON.parse(response.getContentText());
+  return data[attribute] || data;
+}
+
+// Then use like GOOGLEFINANCE:
+=DIVV("AAPL", "price")
+=DIVV("JNJ", "dividendYield")
+=DIVV("PG", "yearHigh")`}
+            />
           </div>
-          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-8 border-2 border-purple-200">
-            <pre className="text-sm text-gray-800 font-mono overflow-x-auto">
-{`curl "http://localhost:8000/v1/search?q=AAPL"
 
-{
-  "symbol": "AAPL",
-  "company": "Apple Inc.",
-  "exchange": "NASDAQ",
-  "relevance": 1.0
-}`}
-            </pre>
+          <div className="text-center">
+            <Link
+              href="/api"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-bold hover:from-green-700 hover:to-blue-700 transition-all shadow-lg text-lg"
+            >
+              <span>Explore All Endpoints</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
         </div>
@@ -366,27 +706,52 @@ export default function HomePage() {
   );
 }
 
-function FeatureCard({ title, description, gradient }: {
+function DividendFeatureCard({ icon, title, description, highlight }: {
+  icon: string;
   title: string;
   description: string;
-  gradient: string;
+  highlight: string;
 }) {
   return (
-    <div className="group p-6 rounded-xl bg-white border-2 border-gray-200 hover:border-transparent hover:shadow-xl transition-all relative overflow-hidden">
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity`}></div>
+    <div className="group p-6 rounded-xl bg-white border-2 border-gray-200 hover:border-green-500 hover:shadow-xl transition-all relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
       <div className="relative">
-        <h3 className={`text-lg font-semibold mb-2 bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>{title}</h3>
-        <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
+        <div className="text-4xl mb-3">{icon}</div>
+        <h3 className="text-xl font-bold mb-2 text-gray-900">{title}</h3>
+        <p className="text-gray-600 text-sm leading-relaxed mb-3">{description}</p>
+        <div className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+          {highlight}
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ number, label }: { number: string; label: string }) {
+function UseCaseCard({ title, description, code }: {
+  title: string;
+  description: string;
+  code: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden hover:border-blue-500 transition-all shadow-sm">
+      <div className="p-6 bg-gradient-to-r from-green-50 to-blue-50">
+        <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-600 text-sm">{description}</p>
+      </div>
+      <div className="bg-slate-800 p-6">
+        <pre className="text-base text-white font-mono overflow-x-auto leading-relaxed bg-slate-800">
+          <code className="text-white">{code}</code>
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ number, label, highlight }: { number: string; label: string; highlight?: boolean }) {
   return (
     <div className="text-center">
-      <div className="text-4xl font-bold text-gray-900 mb-2">{number}</div>
-      <div className="text-sm text-gray-500 uppercase tracking-wider">{label}</div>
+      <div className={`text-4xl font-bold mb-2 ${highlight ? 'text-blue-600' : 'text-gray-900'}`}>{number}</div>
+      <div className={`text-sm uppercase tracking-wider ${highlight ? 'text-blue-500 font-semibold' : 'text-gray-500'}`}>{label}</div>
     </div>
   );
 }

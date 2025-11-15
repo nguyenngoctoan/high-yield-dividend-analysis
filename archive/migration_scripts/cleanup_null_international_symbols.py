@@ -69,7 +69,7 @@ def get_symbols_with_international_suffixes():
     print("🔍 Finding NULL exchange symbols with international suffixes...")
 
     supabase = get_supabase_client()
-    result = supabase.table('stocks').select('symbol, exchange').is_('exchange', 'null').execute()
+    result = supabase.table('raw_stocks').select('symbol, exchange').is_('exchange', 'null').execute()
 
     international_symbols = []
     normal_symbols = []
@@ -216,11 +216,11 @@ def main():
     supabase = get_supabase_client()
 
     # Check for any remaining NULL exchanges
-    result = supabase.table('stocks').select('symbol', count='exact').is_('exchange', 'null').execute()
+    result = supabase.table('raw_stocks').select('symbol', count='exact').is_('exchange', 'null').execute()
     null_count = len(result.data)
 
     # Get exchange distribution
-    result = supabase.table('stocks').select('exchange', count='exact').execute()
+    result = supabase.table('raw_stocks').select('exchange', count='exact').execute()
     exchanges = {}
     for stock in result.data:
         ex = stock.get('exchange') or 'NULL'

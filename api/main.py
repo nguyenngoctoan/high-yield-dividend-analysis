@@ -10,16 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 import time
 import logging
 from typing import Dict, Any
-from pathlib import Path
 
 # Import routers
-from api.routers import stocks, dividends, screeners, etfs, prices, analytics, search, api_keys, auth, bulk
-from api.rate_limit import rate_limit_middleware
-from api.middleware.rate_limiter import RateLimiterMiddleware
+from api.routers import stocks, dividends, screeners, etfs, analytics, search, api_keys, auth, bulk
+# Note: Rate limiting is now handled by tier_enforcer middleware, not separate rate limiters
 from api.config import settings
 
 # Configure logging
@@ -97,21 +94,9 @@ app.add_middleware(
 # Gzip compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# Rate limiting middleware (monthly + per-minute limits)
-app.add_middleware(
-    RateLimiterMiddleware,
-    exclude_paths=[
-        "/health",
-        "/docs",
-        "/redoc",
-        "/openapi.json",
-        "/auth/login",
-        "/auth/callback",
-        "/auth/logout",
-        "/auth/status",
-        "/"
-    ]
-)
+# Note: Rate limiting is now handled by tier_enforcer middleware via database,
+# not the standalone RateLimiterMiddleware. Per-minute and monthly limits are
+# enforced in individual routers using the enforce_rate_limit dependency.
 
 # Request timing and rate limiting middleware
 @app.middleware("http")
@@ -199,7 +184,7 @@ async def root() -> Dict[str, Any]:
         "name": "Dividend API",
         "version": "1.0.0",
         "description": "Production-grade API for dividend investors",
-        "documentation": "http://localhost:3000",
+        "documentation": settings.FRONTEND_URL,
         "base_url": "/v1",
         "status": "operational",
         "endpoints": {
@@ -222,7 +207,6 @@ app.include_router(stocks.router, prefix="/v1", tags=["stocks"])
 app.include_router(dividends.router, prefix="/v1", tags=["dividends"])
 app.include_router(screeners.router, prefix="/v1", tags=["screeners"])
 app.include_router(etfs.router, prefix="/v1", tags=["etfs"])
-app.include_router(prices.router, prefix="/v1", tags=["prices"])
 app.include_router(analytics.router, prefix="/v1", tags=["analytics"])
 app.include_router(search.router, prefix="/v1", tags=["search"])
 app.include_router(api_keys.router, prefix="/v1", tags=["api_keys"])

@@ -112,7 +112,7 @@ def backfill_exchanges(batch_size=1000, max_workers=50):
     supabase = get_supabase_client()
 
     # Get all stocks with NULL exchange
-    result = supabase.table('stocks').select('symbol, exchange').is_('exchange', 'null').execute()
+    result = supabase.table('raw_stocks').select('symbol, exchange').is_('exchange', 'null').execute()
 
     symbols_to_process = [stock['symbol'] for stock in result.data]
     total_symbols = len(symbols_to_process)
@@ -157,7 +157,7 @@ def backfill_exchanges(batch_size=1000, max_workers=50):
 
     # Show exchange distribution
     print(f"\n📊 Exchange distribution after backfill:")
-    result = supabase.table('stocks').select('exchange').execute()
+    result = supabase.table('raw_stocks').select('exchange').execute()
 
     exchange_counts = {}
     for stock in result.data:

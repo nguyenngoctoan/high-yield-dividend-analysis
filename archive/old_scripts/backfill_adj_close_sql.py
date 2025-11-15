@@ -60,7 +60,7 @@ def step1_bulk_fallback():
         cur = conn.cursor()
 
         # Count records needing update
-        cur.execute("SELECT COUNT(*) FROM stock_prices WHERE adj_close IS NULL;")
+        cur.execute("SELECT COUNT(*) FROM raw_stock_prices WHERE adj_close IS NULL;")
         count_before = cur.fetchone()[0]
 
         logger.info(f"📊 Records needing fallback: {count_before:,}")
@@ -91,7 +91,7 @@ def step1_bulk_fallback():
         logger.info(f"✅ Updated {rows_updated:,} records")
 
         # Verify
-        cur.execute("SELECT COUNT(*) FROM stock_prices WHERE adj_close IS NULL;")
+        cur.execute("SELECT COUNT(*) FROM raw_stock_prices WHERE adj_close IS NULL;")
         count_after = cur.fetchone()[0]
 
         logger.info(f"📊 Records still NULL: {count_after:,}")

@@ -6,22 +6,26 @@ Implements monthly + per-minute rate limiting with burst support
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Tuple
 import time
 import logging
+import hashlib
+from dateutil import parser
 
-from supabase_helpers import get_supabase_client
+from supabase_helpers import get_supabase_client, get_supabase_admin_client
 
 logger = logging.getLogger(__name__)
-supabase = get_supabase_client()
+supabase = get_supabase_client()  # For reading data
+supabase_admin = get_supabase_admin_client()  # For admin operations (rate limiting)
 
 
 class RateLimitExceeded(HTTPException):
     """Custom exception for rate limit exceeded"""
-    def __init__(self, limit_type: str, reset_time: int, detail: str = None):
+    def __init__(self, limit_type: str, reset_time: int, rate_limit_info: Dict = None, detail: str = None):
         self.limit_type = limit_type
         self.reset_time = reset_time
+        self.rate_limit_info = rate_limit_info
         super().__init__(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=detail or f"{limit_type} rate limit exceeded. Try again after {reset_time} seconds.",
@@ -53,17 +57,31 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         ]
 
     async def dispatch(self, request: Request, call_next):
-        # Skip rate limiting for excluded paths
-        if any(request.url.path.startswith(path) for path in self.exclude_paths):
-            return await call_next(request)
+        logger.info(f"RateLimiterMiddleware.dispatch called for path: {request.url.path}")
+
+        # Skip rate limiting for excluded paths (exact match or prefix match, but not "/")
+        for excluded_path in self.exclude_paths:
+            if excluded_path == "/" and request.url.path == "/":
+                logger.info(f"Skipping rate limiting for root path")
+                return await call_next(request)
+            elif excluded_path != "/" and request.url.path.startswith(excluded_path):
+                logger.info(f"Skipping rate limiting for excluded path: {request.url.path} (matched: {excluded_path})")
+                return await call_next(request)
 
         # Extract API key
         api_key = self._extract_api_key(request)
 
+        if api_key:
+            logger.info(f"Rate limiter: path={request.url.path}, api_key_prefix={api_key[:12] if len(api_key) >= 12 else api_key}")
+        else:
+            logger.info(f"Rate limiter: path={request.url.path}, has_api_key=False")
+
         if not api_key:
             # No API key - allow through (will be caught by auth middleware)
+            logger.info("No API key found, allowing request through")
             return await call_next(request)
 
+        rate_limit_info = None
         try:
             # Check rate limits
             rate_limit_info = await self._check_rate_limits(api_key)
@@ -80,8 +98,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             return response
 
         except RateLimitExceeded as e:
-            # Return 429 with rate limit info
-            return JSONResponse(
+            # Return 429 with rate limit info and headers
+            response = JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={
                     "error": "Rate limit exceeded",
@@ -90,6 +108,17 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                     "retry_after": e.reset_time
                 },
                 headers=e.headers
+            )
+            # Add rate limit headers to 429 response if available
+            if e.rate_limit_info:
+                self._add_rate_limit_headers(response, e.rate_limit_info)
+            return response
+        except HTTPException as e:
+            # Return proper response for HTTP exceptions (401, 403, etc.)
+            return JSONResponse(
+                status_code=e.status_code,
+                content={"detail": e.detail},
+                headers=dict(e.headers) if e.headers else {}
             )
         except Exception as e:
             logger.error(f"Rate limiter error: {e}", exc_info=True)
@@ -115,13 +144,16 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
         return None
 
-    async def _check_rate_limits(self, api_key_hash: str) -> Dict:
+    async def _check_rate_limits(self, api_key: str) -> Dict:
         """
         Check both monthly and per-minute rate limits
         Returns rate limit info or raises RateLimitExceeded
         """
+        # Hash the API key to look it up in the database
+        key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+
         # Get API key info from database
-        key_info = await self._get_key_info(api_key_hash)
+        key_info = await self._get_key_info(key_hash)
 
         if not key_info:
             raise HTTPException(
@@ -140,39 +172,59 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         tier = key_info['tier']
         limits = await self._get_tier_limits(tier)
 
+        # Build rate limit info (before checking limits, so it's available even if we hit the limit)
+        rate_limit_info = {
+            "tier": tier,
+            "monthly_limit": limits['monthly_call_limit'],
+            "monthly_remaining": max(0, limits['monthly_call_limit'] - key_info['monthly_usage'] - 1),
+            "monthly_reset": int(key_info['monthly_usage_reset_at'].timestamp()),
+            "minute_limit": limits['calls_per_minute'],
+            "minute_remaining": max(0, limits['calls_per_minute'] - key_info['minute_usage'] - 1),
+            "minute_reset": int((key_info['minute_window_start'] + timedelta(minutes=1)).timestamp())
+        }
+
         # Check monthly limit
-        await self._check_monthly_limit(key_info, limits)
+        await self._check_monthly_limit(key_info, limits, rate_limit_info)
 
         # Check per-minute limit
-        await self._check_minute_limit(key_info, limits)
+        await self._check_minute_limit(key_info, limits, rate_limit_info)
 
         # Increment usage counters
         await self._increment_usage(key_info['id'])
 
         # Return rate limit info
-        return {
-            "tier": tier,
-            "monthly_limit": limits['monthly_call_limit'],
-            "monthly_remaining": limits['monthly_call_limit'] - key_info['monthly_usage'] - 1,
-            "monthly_reset": int(key_info['monthly_usage_reset_at'].timestamp()),
-            "minute_limit": limits['calls_per_minute'],
-            "minute_remaining": limits['calls_per_minute'] - key_info['minute_usage'] - 1,
-            "minute_reset": int((key_info['minute_window_start'] + timedelta(minutes=1)).timestamp())
-        }
+        return rate_limit_info
+
+    def _parse_timestamp(self, timestamp_str: str) -> datetime:
+        """Parse ISO timestamp string to datetime object"""
+        if isinstance(timestamp_str, datetime):
+            return timestamp_str
+        return parser.isoparse(timestamp_str)
 
     async def _get_key_info(self, api_key_hash: str) -> Optional[Dict]:
         """Get API key info from database"""
         try:
-            # In production, you'd hash the API key first
-            # For now, assuming key_hash column stores the prefix for lookup
+            logger.info(f"Looking up API key with hash: {api_key_hash[:10]}...")
+            # Look up API key by hash
             result = supabase.table('divv_api_keys').select(
                 'id, tier, is_active, monthly_usage, monthly_usage_reset_at, '
                 'minute_usage, minute_window_start'
-            ).eq('key_hash', api_key_hash).eq('is_active', True).single().execute()
+            ).eq('key_hash', api_key_hash).eq('is_active', True).execute()
 
-            if result.data:
-                return result.data
+            logger.info(f"Query result: {len(result.data) if result.data else 0} rows")
 
+            if result.data and len(result.data) > 0:
+                key_info = result.data[0]
+                # Parse timestamp strings to datetime objects
+                if key_info.get('monthly_usage_reset_at'):
+                    key_info['monthly_usage_reset_at'] = self._parse_timestamp(key_info['monthly_usage_reset_at'])
+                if key_info.get('minute_window_start'):
+                    key_info['minute_window_start'] = self._parse_timestamp(key_info['minute_window_start'])
+
+                logger.info(f"Found API key: {key_info['id']}")
+                return key_info
+
+            logger.warning(f"No API key found for hash: {api_key_hash[:10]}...")
             return None
         except Exception as e:
             logger.error(f"Error fetching API key info: {e}")
@@ -181,7 +233,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     async def _get_tier_limits(self, tier: str) -> Dict:
         """Get tier limits from database"""
         try:
-            result = supabase.table('tier_limits').select(
+            result = supabase.table('divv_tier_limits').select(
                 'monthly_call_limit, calls_per_minute, burst_limit'
             ).eq('tier', tier).single().execute()
 
@@ -190,34 +242,36 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             logger.error(f"Error fetching tier limits: {e}")
             # Return default free tier limits as fallback
             return {
-                'monthly_call_limit': 10000,
+                'monthly_call_limit': 5000,
                 'calls_per_minute': 10,
                 'burst_limit': 20
             }
 
-    async def _check_monthly_limit(self, key_info: Dict, limits: Dict):
+    async def _check_monthly_limit(self, key_info: Dict, limits: Dict, rate_limit_info: Dict):
         """Check if monthly limit is exceeded"""
         # Reset monthly counter if needed
         reset_time = key_info.get('monthly_usage_reset_at')
-        if reset_time and datetime.now().timestamp() >= reset_time.timestamp():
+        now = datetime.now(timezone.utc)
+        if reset_time and now.timestamp() >= reset_time.timestamp():
             await self._reset_monthly_usage(key_info['id'])
             key_info['monthly_usage'] = 0
 
         # Check limit
         if key_info['monthly_usage'] >= limits['monthly_call_limit']:
             reset_at = key_info['monthly_usage_reset_at']
-            reset_seconds = int((reset_at - datetime.now()).total_seconds())
+            reset_seconds = int((reset_at - now).total_seconds())
 
             raise RateLimitExceeded(
                 limit_type="monthly",
                 reset_time=reset_seconds,
+                rate_limit_info=rate_limit_info,
                 detail=f"Monthly limit of {limits['monthly_call_limit']} calls exceeded. "
                        f"Limit resets in {reset_seconds} seconds."
             )
 
-    async def _check_minute_limit(self, key_info: Dict, limits: Dict):
+    async def _check_minute_limit(self, key_info: Dict, limits: Dict, rate_limit_info: Dict):
         """Check if per-minute limit is exceeded (with burst support)"""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         window_start = key_info.get('minute_window_start')
 
         # Reset minute counter if window expired
@@ -238,6 +292,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             raise RateLimitExceeded(
                 limit_type="minute",
                 reset_time=reset_seconds,
+                rate_limit_info=rate_limit_info,
                 detail=f"Per-minute limit of {limits['calls_per_minute']} calls "
                        f"(burst: {burst_limit}) exceeded. Try again in {reset_seconds} seconds."
             )
@@ -245,8 +300,14 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     async def _increment_usage(self, api_key_id: str):
         """Increment usage counters"""
         try:
+            # Use admin client for increment (requires service_role after security fix)
+            if not supabase_admin:
+                logger.error("❌ Admin client not initialized - cannot increment usage")
+                logger.error("   Make sure SUPABASE_SERVICE_ROLE_KEY is set in .env file")
+                return
+
             # Increment both monthly and minute usage
-            supabase.rpc('increment_key_usage', {
+            supabase_admin.rpc('increment_key_usage', {
                 'key_id': api_key_id
             }).execute()
         except Exception as e:
@@ -257,7 +318,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         try:
             supabase.table('divv_api_keys').update({
                 'monthly_usage': 0,
-                'monthly_usage_reset_at': datetime.now() + timedelta(days=30)
+                'monthly_usage_reset_at': (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
             }).eq('id', api_key_id).execute()
         except Exception as e:
             logger.error(f"Error resetting monthly usage: {e}")
@@ -267,7 +328,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         try:
             supabase.table('divv_api_keys').update({
                 'minute_usage': 0,
-                'minute_window_start': datetime.now()
+                'minute_window_start': datetime.now(timezone.utc).isoformat()
             }).eq('id', api_key_id).execute()
         except Exception as e:
             logger.error(f"Error resetting minute usage: {e}")

@@ -116,7 +116,7 @@ def get_existing_symbols():
     try:
         with get_postgres_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT symbol FROM stocks")
+                cursor.execute("SELECT symbol FROM raw_stocks")
                 results = cursor.fetchall()
                 return set(row['symbol'] for row in results)
     except Exception as e:
@@ -272,7 +272,7 @@ def cleanup_stale_stocks():
                 if portfolio_symbols:
                     placeholders = ','.join(['%s'] * len(portfolio_symbols))
                     cursor.execute(f"""
-                        DELETE FROM stocks
+                        DELETE FROM raw_stocks
                         WHERE symbol IN (
                             SELECT symbol FROM stocks_excluded
                         )
@@ -281,7 +281,7 @@ def cleanup_stale_stocks():
                 else:
                     # If no portfolio symbols, use original query
                     cursor.execute("""
-                        DELETE FROM stocks
+                        DELETE FROM raw_stocks
                         WHERE symbol IN (
                             SELECT symbol FROM stocks_excluded
                         )
@@ -291,7 +291,7 @@ def cleanup_stale_stocks():
                 conn.commit()
 
                 if deleted_count > 0:
-                    logger.info(f"🧹 Removed {deleted_count} stale symbols from stocks table (protected {len(portfolio_symbols)} portfolio symbols)")
+                    logger.info(f"🧹 Removed {deleted_count} stale symbols from raw_stocks table (protected {len(portfolio_symbols)} portfolio symbols)")
                 return deleted_count
     except Exception as e:
         logger.error(f"Error cleaning up stale stocks: {e}")
@@ -1017,7 +1017,7 @@ def main():
 
     with get_postgres_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) as count FROM stocks")
+            cursor.execute("SELECT COUNT(*) as count FROM raw_stocks")
             total_stocks = cursor.fetchone()[0]
 
             cursor.execute("SELECT COUNT(*) as count FROM stocks_excluded")

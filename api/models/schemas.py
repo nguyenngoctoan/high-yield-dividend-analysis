@@ -159,6 +159,55 @@ class StockListResponse(BaseModel):
     cursor: Optional[str] = None
 
 
+class StockQuote(BaseModel):
+    """
+    Real-time stock quote with GOOGLEFINANCE parity.
+
+    Provides all data available in Google Sheets GOOGLEFINANCE() function
+    plus additional dividend data.
+    """
+    symbol: str = Field(..., description="Stock symbol")
+    price: float = Field(..., description="Current price")
+
+    # Daily price data
+    open: Optional[float] = Field(None, description="Today's open price")
+    day_high: Optional[float] = Field(None, alias="dayHigh", description="Today's high")
+    day_low: Optional[float] = Field(None, alias="dayLow", description="Today's low")
+    previous_close: Optional[float] = Field(None, alias="previousClose", description="Previous closing price")
+    change: Optional[float] = Field(None, description="Price change amount")
+    change_percent: Optional[float] = Field(None, alias="changePercent", description="Price change percentage")
+
+    # Volume data
+    volume: Optional[int] = Field(None, description="Today's volume")
+    avg_volume: Optional[int] = Field(None, alias="avgVolume", description="Average volume")
+
+    # Moving averages
+    price_avg_50: Optional[float] = Field(None, alias="priceAvg50", description="50-day moving average")
+    price_avg_200: Optional[float] = Field(None, alias="priceAvg200", description="200-day moving average")
+
+    # 52-week range
+    year_high: Optional[float] = Field(None, alias="yearHigh", description="52-week high")
+    year_low: Optional[float] = Field(None, alias="yearLow", description="52-week low")
+
+    # Fundamental data
+    market_cap: Optional[int] = Field(None, alias="marketCap", description="Market capitalization")
+    pe_ratio: Optional[float] = Field(None, alias="peRatio", description="Price-to-earnings ratio")
+    eps: Optional[float] = Field(None, description="Earnings per share (TTM)")
+    shares_outstanding: Optional[int] = Field(None, alias="sharesOutstanding", description="Shares outstanding")
+
+    # Company info
+    company: Optional[str] = Field(None, description="Company name")
+    exchange: Optional[str] = Field(None, description="Exchange")
+    sector: Optional[str] = Field(None, description="Sector")
+
+    # Dividend data (superior to GOOGLEFINANCE)
+    dividend_yield: Optional[float] = Field(None, alias="dividendYield", description="Annual dividend yield %")
+    dividend_amount: Optional[float] = Field(None, alias="dividendAmount", description="Annual dividend amount")
+
+    class Config:
+        populate_by_name = True
+
+
 # ============================================================================
 # Dividend Models
 # ============================================================================
@@ -487,25 +536,6 @@ class ETFDetails(BaseModel):
     dividend_yield: Optional[float] = None
     holdings_count: Optional[int] = None
     holdings_updated_at: Optional[datetime] = None
-
-
-class HourlyPriceBar(BaseModel):
-    """Hourly price bar with timestamp."""
-    timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: int
-    vwap: Optional[float] = None
-
-
-class HourlyPriceResponse(BaseModel):
-    """Hourly price history response."""
-    object: str = "hourly_prices"
-    symbol: str
-    date: date
-    data: List[HourlyPriceBar]
 
 
 class StockSplit(BaseModel):

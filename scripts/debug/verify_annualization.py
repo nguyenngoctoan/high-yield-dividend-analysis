@@ -34,7 +34,7 @@ cursor.execute("""
     SELECT MIN(date) as first_date,
            MAX(date) as last_date,
            COUNT(*) as total_records
-    FROM stock_prices
+    FROM raw_stock_prices
     WHERE symbol = %s
 """, (symbol,))
 first_date, last_date, total_records = cursor.fetchone()
@@ -48,13 +48,13 @@ print(f"Total records: {total_records}")
 
 # Get earliest and latest prices
 cursor.execute("""
-    SELECT adj_close FROM stock_prices
+    SELECT adj_close FROM raw_stock_prices
     WHERE symbol = %s AND date = %s
 """, (symbol, first_date))
 first_price = float(cursor.fetchone()[0])
 
 cursor.execute("""
-    SELECT adj_close FROM stock_prices
+    SELECT adj_close FROM raw_stock_prices
     WHERE symbol = %s AND date = %s
 """, (symbol, last_date))
 last_price = float(cursor.fetchone()[0])
@@ -74,7 +74,7 @@ print(f"Annualized return (365 days): {annualized_price_change*100:.2f}%")
 # Get dividends
 cursor.execute("""
     SELECT ex_date, amount
-    FROM dividend_history
+    FROM raw_dividends
     WHERE symbol = %s
     AND ex_date >= %s
     AND ex_date <= %s

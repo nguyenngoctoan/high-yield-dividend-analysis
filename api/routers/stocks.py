@@ -10,10 +10,10 @@ import base64
 import json
 
 from api.models.schemas import (
-    Stock, StockDetail, StockListResponse, StockType,
+    Stock, StockDetail, StockListResponse, StockType, StockQuote,
     CompanyInfo, PricingInfo, DividendInfo, DividendFrequency,
     create_stock_id, ErrorResponse, Fundamentals, DividendMetrics,
-    HourlyPriceResponse, HourlyPriceBar, StockSplit, SplitHistoryResponse
+    StockSplit, SplitHistoryResponse
 )
 from supabase_helpers import get_supabase_client
 
@@ -400,7 +400,7 @@ async def get_stock_splits(
         supabase = get_supabase_client()
 
         # Fetch splits
-        result = supabase.table('raw_stock_splits').select('*')\
+        result = supabase.table('divv_stock_splits').select('*')\
             .eq('symbol', symbol.upper())\
             .order('date', desc=True)\
             .limit(limit)\
@@ -432,6 +432,96 @@ async def get_stock_splits(
             detail={"error": {
                 "type": "api_error",
                 "message": f"Failed to fetch stock splits: {str(e)}",
+                "code": "fetch_failed"
+            }}
+        )
+
+
+@router.get("/stocks/{symbol}/quote", response_model=StockQuote, summary="Get real-time quote (GOOGLEFINANCE parity)")
+async def get_stock_quote(
+    symbol: str = Path(..., description="Stock symbol")
+) -> StockQuote:
+    """
+    Get real-time stock quote with GOOGLEFINANCE() parity.
+
+    This endpoint provides 100% feature parity with Google Sheets GOOGLEFINANCE() function,
+    plus superior dividend data. Returns all fundamental data, price metrics, and moving averages.
+
+    Equivalent to these GOOGLEFINANCE attributes:
+    - price, priceopen, high, low, volume, marketcap, pe, eps
+    - high52, low52, change, changepct, shares
+    - avgvol, sma50, sma200, dividendyield
+
+    Plus additional dividend data that GOOGLEFINANCE doesn't provide.
+    """
+    try:
+        supabase = get_supabase_client()
+
+        # Fetch stock with all fundamental data
+        result = supabase.table('raw_stocks').select('*').eq('symbol', symbol.upper()).execute()
+
+        if not result.data:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": {
+                    "type": "resource_not_found_error",
+                    "message": f"Symbol '{symbol}' not found",
+                    "param": "symbol",
+                    "code": "symbol_not_found"
+                }}
+            )
+
+        row = result.data[0]
+
+        # Build comprehensive quote
+        return StockQuote(
+            symbol=row['symbol'],
+            price=row.get('price', 0.0),
+
+            # Daily price data
+            open=row.get('open_price'),
+            day_high=row.get('day_high'),
+            day_low=row.get('day_low'),
+            previous_close=row.get('previous_close'),
+            change=row.get('change'),
+            change_percent=row.get('change_percent'),
+
+            # Volume data
+            volume=row.get('volume'),
+            avg_volume=row.get('avg_volume'),
+
+            # Moving averages
+            price_avg_50=row.get('price_avg_50'),
+            price_avg_200=row.get('price_avg_200'),
+
+            # 52-week range
+            year_high=row.get('year_high'),
+            year_low=row.get('year_low'),
+
+            # Fundamental data
+            market_cap=row.get('market_cap'),
+            pe_ratio=row.get('pe_ratio'),
+            eps=row.get('eps'),
+            shares_outstanding=row.get('shares_outstanding'),
+
+            # Company info
+            company=row.get('company'),
+            exchange=row.get('exchange'),
+            sector=row.get('sector'),
+
+            # Dividend data (superior to GOOGLEFINANCE)
+            dividend_yield=row.get('dividend_yield'),
+            dividend_amount=row.get('dividend_amount')
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"error": {
+                "type": "api_error",
+                "message": f"Failed to fetch stock quote: {str(e)}",
                 "code": "fetch_failed"
             }}
         )

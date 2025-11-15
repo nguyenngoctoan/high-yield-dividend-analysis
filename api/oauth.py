@@ -122,7 +122,7 @@ async def get_or_create_user(google_user_info: Dict[str, Any]) -> Dict[str, Any]
     user_id = result.data
 
     # Fetch the complete user record
-    user_result = supabase.table('users').select('*').eq('id', user_id).execute()
+    user_result = supabase.table('divv_users').select('*').eq('id', user_id).execute()
 
     if not user_result.data:
         raise HTTPException(
@@ -200,7 +200,7 @@ async def get_current_user(token: str) -> Dict[str, Any]:
 
     # Fetch user from database
     supabase = get_supabase_client()
-    result = supabase.table('users').select('*').eq('id', user_id).execute()
+    result = supabase.table('divv_users').select('*').eq('id', user_id).execute()
 
     if not result.data:
         raise HTTPException(

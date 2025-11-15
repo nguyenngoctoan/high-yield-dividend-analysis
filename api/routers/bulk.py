@@ -5,13 +5,14 @@ Endpoints for fetching data for multiple symbols in a single request.
 Reduces API calls by 10-100x compared to individual requests.
 """
 
-from fastapi import APIRouter, HTTPException, Request, Body, Query
+from fastapi import APIRouter, HTTPException, Request, Body, Query, status
 from typing import List, Dict, Optional, Any
 from datetime import datetime, date, timedelta
 import logging
 
 from api.models.schemas import Stock, DividendInfo, ErrorResponse
 from api.middleware.tier_enforcer import TierEnforcer, get_tier_from_request
+from api.config import settings
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -22,7 +23,8 @@ logger = logging.getLogger(__name__)
     "/bulk/stocks",
     summary="Get multiple stocks",
     description="Fetch details for multiple stocks in a single request. "
-                "Tier limits: Starter (50), Premium (200), Professional (1000), Enterprise (unlimited)"
+                "Requires Professional tier or higher. "
+                "Tier limits: Professional (1000), Enterprise (unlimited)"
 )
 async def get_stocks_bulk(
     request: Request,
@@ -32,9 +34,8 @@ async def get_stocks_bulk(
     """
     Fetch details for multiple stocks in a single request.
 
-    **Tier Limits**:
-    - Starter: 50 symbols per request
-    - Premium: 200 symbols per request
+    **Tier Requirements**:
+    - Free, Starter, Premium: Not available (use individual endpoints)
     - Professional: 1,000 symbols per request
     - Enterprise: Unlimited
 
@@ -47,28 +48,41 @@ async def get_stocks_bulk(
         # Get user's tier
         tier = await get_tier_from_request(request)
 
+        # Bulk operations require Professional tier or higher
+        allowed_tiers = ['professional', 'enterprise']
+        if tier not in allowed_tiers:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "bulk_requests_not_available",
+                    "message": f"Bulk requests require Professional tier or higher. Current tier: {tier}",
+                    "required_tier": "professional",
+                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
+                }
+            )
+
         # Check bulk limit
         max_symbols = await TierEnforcer.get_max_bulk_symbols(tier)
 
         if max_symbols == 0:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "error": "bulk_requests_not_available",
-                    "message": f"Bulk requests are not available on the {tier} tier. Upgrade to Starter or higher.",
-                    "upgrade_url": "http://localhost:3000/pricing"
+                    "message": f"Bulk requests are not available on the {tier} tier. Upgrade to Professional or higher.",
+                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                 }
             )
 
         if len(symbols) > max_symbols:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
                     "error": "bulk_limit_exceeded",
                     "message": f"Requested {len(symbols)} symbols, but {tier} tier allows maximum {max_symbols} symbols per request",
                     "max_symbols": max_symbols,
                     "requested_symbols": len(symbols),
-                    "upgrade_url": "http://localhost:3000/pricing"
+                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                 }
             )
 
@@ -127,13 +141,21 @@ async def get_stocks_bulk(
                     if 'prices' in expand_fields:
                         results[symbol]['pricing_info'] = {
                             'current': row.get('price'),
-                            'open': row.get('open'),
-                            'high': row.get('high'),
-                            'low': row.get('low'),
+                            'open': row.get('open_price'),
+                            'day_high': row.get('day_high'),
+                            'day_low': row.get('day_low'),
+                            'previous_close': row.get('previous_close'),
                             'volume': row.get('volume'),
                             'change': row.get('change'),
                             'change_percent': row.get('change_percent'),
-                            'pe_ratio': row.get('pe_ratio')
+                            'pe_ratio': row.get('pe_ratio'),
+                            'eps': row.get('eps'),
+                            'year_high': row.get('year_high'),
+                            'year_low': row.get('year_low'),
+                            'avg_volume': row.get('avg_volume'),
+                            'price_avg_50': row.get('price_avg_50'),
+                            'price_avg_200': row.get('price_avg_200'),
+                            'shares_outstanding': row.get('shares_outstanding')
                         }
 
             # Mark symbols not found in database
@@ -158,7 +180,7 @@ async def get_stocks_bulk(
     except Exception as e:
         logger.error(f"Bulk stocks request failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error": "api_error",
                 "message": f"Failed to fetch stocks: {str(e)}",
@@ -200,17 +222,17 @@ async def get_dividends_bulk(
 
         if max_symbols == 0:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "error": "bulk_requests_not_available",
                     "message": f"Bulk requests are not available on the {tier} tier",
-                    "upgrade_url": "http://localhost:3000/pricing"
+                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                 }
             )
 
         if len(symbols) > max_symbols:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
                     "error": "bulk_limit_exceeded",
                     "message": f"Requested {len(symbols)} symbols, maximum is {max_symbols}",
@@ -243,7 +265,7 @@ async def get_dividends_bulk(
             cutoff_date = (datetime.now() - timedelta(days=years_to_fetch * 365)).date()
 
             # Fetch dividends
-            result = supabase.table('dividend_history').select('*') \
+            result = supabase.table('raw_dividends').select('*') \
                 .in_('symbol', normalized_symbols) \
                 .gte('ex_date', cutoff_date.isoformat()) \
                 .order('ex_date', desc=True) \
@@ -286,7 +308,7 @@ async def get_dividends_bulk(
     except Exception as e:
         logger.error(f"Bulk dividends request failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error": "api_error",
                 "message": f"Failed to fetch dividends: {str(e)}",
@@ -311,11 +333,7 @@ async def get_prices_bulk(
     Fetch price history for multiple stocks in a single request.
 
     **Price Frequency by Tier**:
-    - Free: End-of-day only
-    - Starter: Hourly + EOD
-    - Premium: 15-minute + EOD
-    - Professional: 1-minute + EOD
-    - Enterprise: Real-time
+    - All tiers: End-of-day only
 
     **Returns**:
     - `data`: Dictionary mapping symbol to price data
@@ -331,17 +349,17 @@ async def get_prices_bulk(
 
         if max_symbols == 0:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "error": "bulk_requests_not_available",
                     "message": f"Bulk requests are not available on the {tier} tier",
-                    "upgrade_url": "http://localhost:3000/pricing"
+                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                 }
             )
 
         if len(symbols) > max_symbols:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
                     "error": "bulk_limit_exceeded",
                     "message": f"Requested {len(symbols)} symbols, maximum is {max_symbols}",
@@ -382,7 +400,7 @@ async def get_prices_bulk(
             normalized_symbols = [s.upper() for s in accessible_symbols]
 
             # Fetch prices
-            result = supabase.table('stock_prices').select('*') \
+            result = supabase.table('raw_stock_prices').select('*') \
                 .in_('symbol', normalized_symbols) \
                 .gte('date', start_date.isoformat()) \
                 .lte('date', end_date.isoformat()) \
@@ -431,7 +449,7 @@ async def get_prices_bulk(
     except Exception as e:
         logger.error(f"Bulk prices request failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error": "api_error",
                 "message": f"Failed to fetch prices: {str(e)}",
@@ -468,17 +486,17 @@ async def get_latest_prices_bulk(
 
         if max_symbols == 0:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "error": "bulk_requests_not_available",
                     "message": f"Bulk requests are not available on the {tier} tier",
-                    "upgrade_url": "http://localhost:3000/pricing"
+                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing"
                 }
             )
 
         if len(symbols) > max_symbols:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
                     "error": "bulk_limit_exceeded",
                     "message": f"Requested {len(symbols)} symbols, maximum is {max_symbols}",
@@ -502,25 +520,30 @@ async def get_latest_prices_bulk(
             supabase = get_supabase_client()
             normalized_symbols = [s.upper() for s in accessible_symbols]
 
-            result = supabase.table('raw_stocks').select(
-                'symbol, price, open, high, low, volume, change, change_percent, '
-                'dividend_yield, pe_ratio, market_cap, updated_at'
-            ).in_('symbol', normalized_symbols).execute()
+            result = supabase.table('raw_stocks').select('*').in_('symbol', normalized_symbols).execute()
 
             for row in result.data:
                 symbol = row['symbol']
                 results[symbol] = {
                     'symbol': symbol,
                     'price': row.get('price'),
-                    'open': row.get('open'),
-                    'high': row.get('high'),
-                    'low': row.get('low'),
+                    'open': row.get('open_price'),
+                    'day_high': row.get('day_high'),
+                    'day_low': row.get('day_low'),
+                    'previous_close': row.get('previous_close'),
                     'volume': row.get('volume'),
                     'change': row.get('change'),
                     'change_percent': row.get('change_percent'),
                     'dividend_yield': row.get('dividend_yield'),
                     'pe_ratio': row.get('pe_ratio'),
+                    'eps': row.get('eps'),
                     'market_cap': row.get('market_cap'),
+                    'shares_outstanding': row.get('shares_outstanding'),
+                    'year_high': row.get('year_high'),
+                    'year_low': row.get('year_low'),
+                    'avg_volume': row.get('avg_volume'),
+                    'price_avg_50': row.get('price_avg_50'),
+                    'price_avg_200': row.get('price_avg_200'),
                     'updated_at': row.get('updated_at')
                 }
 
@@ -546,7 +569,7 @@ async def get_latest_prices_bulk(
     except Exception as e:
         logger.error(f"Bulk latest prices request failed: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error": "api_error",
                 "message": f"Failed to fetch latest prices: {str(e)}",

@@ -49,7 +49,7 @@ def create_splits_table_if_not_exists():
     supabase = get_supabase_client()
 
     try:
-        supabase.table('raw_stock_splits').select('symbol').limit(1).execute()
+        supabase.table('divv_stock_splits').select('symbol').limit(1).execute()
         logger.info("✅ raw_stock_splits table exists")
         return True
     except Exception as e:

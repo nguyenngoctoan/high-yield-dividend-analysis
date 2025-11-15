@@ -312,7 +312,7 @@ async def get_api_key_usage(
         # Get daily usage statistics
         cutoff_date = (datetime.utcnow() - timedelta(days=days)).date()
 
-        usage_result = supabase.table('mv_api_usage_daily').select('*').eq('api_key_id', key_id).gte('request_date', cutoff_date.isoformat()).order('request_date', desc=True).execute()
+        usage_result = supabase.table('divv_mv_api_usage_daily').select('*').eq('api_key_id', key_id).gte('request_date', cutoff_date.isoformat()).order('request_date', desc=True).execute()
 
         # Calculate totals
         total_requests = sum(day['total_requests'] for day in usage_result.data)

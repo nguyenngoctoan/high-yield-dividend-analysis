@@ -27,7 +27,7 @@ def get_null_exchange_symbols(limit=None):
     print("📊 Fetching NULL exchange symbols...")
     supabase = get_supabase_client()
 
-    query = supabase.table('stocks').select('symbol, company, dividend_yield, last_updated').is_('exchange', 'null')
+    query = supabase.table('raw_stocks').select('symbol, company, dividend_yield, last_updated').is_('exchange', 'null')
 
     if limit:
         query = query.limit(limit)
@@ -214,10 +214,10 @@ def check_recent_activity(symbols, sample_size=100):
     sample_symbols = [s['symbol'] for s in symbols[:sample_size]]
 
     # Check for recent prices
-    price_result = supabase.table('stock_prices').select('symbol', count='exact').in_('symbol', sample_symbols).execute()
+    price_result = supabase.table('raw_stock_prices').select('symbol', count='exact').in_('symbol', sample_symbols).execute()
 
     # Check for dividends
-    div_result = supabase.table('dividend_history').select('symbol', count='exact').in_('symbol', sample_symbols).execute()
+    div_result = supabase.table('raw_dividends').select('symbol', count='exact').in_('symbol', sample_symbols).execute()
 
     print(f"   Symbols with price data:     {len(price_result.data):,} / {sample_size}")
     print(f"   Symbols with dividend data:  {len(div_result.data):,} / {sample_size}")

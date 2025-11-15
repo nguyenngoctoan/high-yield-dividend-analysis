@@ -993,7 +993,7 @@ def check_symbols_exist_in_database_batch(symbols):
     logger.info(f"🔍 Checking {len(symbols)} symbols against database (batch operation)...")
     
     try:
-        # Get all symbols from stocks table with pagination
+        # Get all symbols from raw_stocks table with pagination
         existing_stocks = set()
         page_size = 1000
         offset = 0
@@ -1496,21 +1496,21 @@ def get_symbols_needing_update():
     logger.info("🎯 Analyzing which symbols need updates (intelligent filtering)...")
     
     try:
-        # Get all symbols from stocks table with their latest data timestamps
+        # Get all symbols from raw_stocks table with their latest data timestamps
         symbols_query = """
         SELECT 
             s.symbol,
             p.last_price_date,
             d.last_dividend_date
-        FROM stocks s
+        FROM raw_stocks s
         LEFT JOIN (
             SELECT symbol, MAX(date) as last_price_date
-            FROM stock_prices 
+            FROM raw_stock_prices 
             GROUP BY symbol
         ) p ON s.symbol = p.symbol
         LEFT JOIN (
             SELECT symbol, MAX(payment_date) as last_dividend_date  
-            FROM dividend_history
+            FROM raw_dividends
             GROUP BY symbol
         ) d ON s.symbol = d.symbol
         """

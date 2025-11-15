@@ -92,3 +92,7 @@ Thumbs.db
 *.bak
 .daily_update.lock
 .daily_update.pid
+
+# Migration scripts with sensitive data
+scripts/run_migration_NOW.py
+scripts/run_migration_*.py

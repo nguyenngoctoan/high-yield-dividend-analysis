@@ -76,8 +76,55 @@ class BatchEODProcessor:
             logger.info("📊 Fetching symbol list from database...")
             from supabase_helpers import supabase_select
             result = supabase_select('raw_stocks', columns='symbol', order_by='symbol')
-            symbols = [row['symbol'] for row in result] if result else []
-            logger.info(f"✅ Found {len(symbols):,} symbols in database")
+            all_symbols = [row['symbol'] for row in result] if result else []
+
+            # Filter out warrants, units, and other special securities
+            # Common patterns for special securities:
+            # - Warrants: end in W, WS, WT (with or without separator)
+            # - Units: end in U, UN, UU (with or without separator)
+            # - Rights: end in R, RT (with or without separator)
+            # - Special classes: XX, FX suffixes (often money market/mutual funds)
+
+            original_count = len(all_symbols)
+            symbols = []
+            excluded = []
+
+            for symbol in all_symbols:
+                is_excluded = False
+
+                # Pattern 1: Ends with separator + suffix (SYMBOL-W, SYMBOL.U)
+                if any(symbol.endswith(sep + suf) for sep in ['-', '.']
+                       for suf in ['W', 'WS', 'WT', 'U', 'UN', 'UU', 'R', 'RT']):
+                    is_excluded = True
+
+                # Pattern 2: Ends with U (units) - ARBGU, ARCKU, ARGUU
+                # Only if symbol is long enough and ends with U
+                elif len(symbol) >= 5 and symbol.endswith('U') and symbol[-2].isalpha():
+                    # Check if it's likely a unit (ends in U or UU)
+                    if symbol.endswith('UU') or (symbol.endswith('U') and not symbol.endswith('RU')):
+                        is_excluded = True
+
+                # Pattern 3: Ends with W (warrants) - ARCKW, ARGUW, ASPSW
+                elif len(symbol) >= 5 and symbol.endswith('W') and symbol[-2].isalpha():
+                    is_excluded = True
+
+                # Pattern 4: Money market funds and special funds (XX, FX suffix)
+                elif symbol.endswith('XX') or symbol.endswith('FX'):
+                    is_excluded = True
+
+                # Pattern 5: Contains .V (foreign exchanges we may not have data for)
+                elif '.V' in symbol or '.TO' in symbol:
+                    is_excluded = True
+
+                if is_excluded:
+                    excluded.append(symbol)
+                else:
+                    symbols.append(symbol)
+
+            logger.info(f"✅ Found {original_count:,} symbols in database")
+            if excluded:
+                logger.info(f"🚫 Excluded {len(excluded):,} warrants/units/rights from price updates")
+                logger.info(f"📊 Processing {len(symbols):,} regular securities")
 
         if not symbols:
             logger.error("❌ No symbols to process")
@@ -118,6 +165,7 @@ class BatchEODProcessor:
         # Step 2: Convert to StockPrice models and batch upsert
         logger.info("💾 Processing and upserting prices to database...")
         price_records = []
+        stock_updates = []  # For fundamental data updates to raw_stocks
         today = date.today()
         invalid_count = 0
 
@@ -161,6 +209,34 @@ class BatchEODProcessor:
                     if invalid_count <= 3:  # Show first 3 invalid records
                         logger.warning(f"⚠️ {symbol}: Invalid price - {price.to_dict()}")
 
+                # Extract fundamental data for raw_stocks update
+                # This gives us GOOGLEFINANCE parity!
+                avg_volume = quote_data.get('avgVolume')
+                if avg_volume is not None:
+                    avg_volume = int(avg_volume) if avg_volume < 9223372036854775807 else 9223372036854775807
+
+                shares_outstanding = quote_data.get('sharesOutstanding')
+                if shares_outstanding is not None:
+                    shares_outstanding = int(shares_outstanding) if shares_outstanding < 9223372036854775807 else 9223372036854775807
+
+                stock_update = {
+                    'symbol': symbol,
+                    'shares_outstanding': shares_outstanding,
+                    'year_high': cap_value(quote_data.get('yearHigh')),
+                    'year_low': cap_value(quote_data.get('yearLow')),
+                    'avg_volume': avg_volume,
+                    'change': cap_value(quote_data.get('change')),
+                    'change_percent': cap_value(quote_data.get('changesPercentage')),
+                    'previous_close': cap_value(quote_data.get('previousClose')),
+                    'price_avg_50': cap_value(quote_data.get('priceAvg50')),
+                    'price_avg_200': cap_value(quote_data.get('priceAvg200')),
+                    'eps': cap_value(quote_data.get('eps')),
+                    'day_high': cap_value(quote_data.get('dayHigh')),
+                    'day_low': cap_value(quote_data.get('dayLow')),
+                    'open_price': cap_value(quote_data.get('open'))
+                }
+                stock_updates.append(stock_update)
+
             except Exception as e:
                 invalid_count += 1
                 if invalid_count <= 3:
@@ -170,6 +246,7 @@ class BatchEODProcessor:
         if invalid_count > 0:
             logger.info(f"⚠️ Skipped {invalid_count:,} invalid price records")
         logger.info(f"✅ Created {len(price_records):,} valid price records")
+        logger.info(f"✅ Created {len(stock_updates):,} fundamental data updates")
 
         # Batch upsert all prices
         if price_records:
@@ -179,6 +256,14 @@ class BatchEODProcessor:
             logger.info(f"✅ Upserted {len(price_records):,} prices")
         else:
             logger.warning("⚠️ No valid price records to upsert!")
+
+        # Batch update fundamental data in raw_stocks
+        if stock_updates:
+            logger.info(f"📦 Updating {len(stock_updates):,} stocks with fundamental data...")
+            supabase_batch_upsert('raw_stocks', stock_updates, batch_size=1000)
+            logger.info(f"✅ Updated fundamental data for {len(stock_updates):,} stocks")
+        else:
+            logger.warning("⚠️ No fundamental data to update!")
 
         logger.info("")
 

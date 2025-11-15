@@ -35,19 +35,19 @@ cursor = conn.cursor()
 # Get price data range
 cursor.execute("""
     SELECT MIN(date) as first_date, MAX(date) as last_date
-    FROM stock_prices
+    FROM raw_stock_prices
     WHERE symbol = %s
 """, (symbol,))
 first_date, last_date = cursor.fetchone()
 
 cursor.execute("""
-    SELECT adj_close FROM stock_prices
+    SELECT adj_close FROM raw_stock_prices
     WHERE symbol = %s AND date = %s
 """, (symbol, first_date))
 first_price = float(cursor.fetchone()[0])
 
 cursor.execute("""
-    SELECT adj_close FROM stock_prices
+    SELECT adj_close FROM raw_stock_prices
     WHERE symbol = %s AND date = %s
 """, (symbol, last_date))
 last_price = float(cursor.fetchone()[0])
@@ -67,7 +67,7 @@ print(f"Price change: ${last_price - first_price:.2f} ({(last_price/first_price 
 # Get all dividends in period (deduplicated)
 cursor.execute("""
     SELECT ex_date, amount
-    FROM dividend_history
+    FROM raw_dividends
     WHERE symbol = %s
     AND ex_date >= %s
     AND ex_date <= %s

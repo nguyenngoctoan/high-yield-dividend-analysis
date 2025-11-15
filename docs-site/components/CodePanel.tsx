@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { API_CONFIG } from '@/lib/config';
 
 interface CodePanelProps {
   endpoint: string;
@@ -9,13 +10,13 @@ interface CodePanelProps {
   onLanguageChange: (lang: 'python' | 'javascript' | 'curl') => void;
 }
 
-const codeExamples: Record<string, Record<string, string>> = {
+const getCodeExamples = (apiUrl: string): Record<string, Record<string, string>> => ({
   '/api/stocks': {
     python: `import requests
 
 # List stocks with filtering
 response = requests.get(
-    "http://localhost:8000/v1/stocks",
+    "${apiUrl}/v1/stocks",
     params={
         "has_dividends": True,
         "min_yield": 5.0,
@@ -28,7 +29,7 @@ for stock in stocks['data']:
     print(f"{stock['symbol']}: {stock['dividend_yield']:.2f}%")`,
     javascript: `// List stocks with filtering
 const response = await fetch(
-  'http://localhost:8000/v1/stocks?' +
+  '${apiUrl}/v1/stocks?' +
   new URLSearchParams({
     has_dividends: 'true',
     min_yield: '5.0',
@@ -40,7 +41,7 @@ const stocks = await response.json();
 stocks.data.forEach(stock => {
   console.log(\`\${stock.symbol}: \${stock.dividend_yield}%\`);
 });`,
-    curl: `curl "http://localhost:8000/v1/stocks?has_dividends=true&min_yield=5.0&limit=20"`,
+    curl: `curl "${apiUrl}/v1/stocks?has_dividends=true&min_yield=5.0&limit=20"`,
   },
   '/api/dividends': {
     python: `import requests
@@ -48,7 +49,7 @@ from datetime import date
 
 # Get dividend calendar
 response = requests.get(
-    "http://localhost:8000/v1/dividends/calendar",
+    "${apiUrl}/v1/dividends/calendar",
     params={
         "start_date": "2025-11-01",
         "end_date": "2025-12-31"
@@ -60,7 +61,7 @@ for event in events['data']:
     print(f"{event['symbol']}: {event['ex_date']} - $\\{event['amount']}")`,
     javascript: `// Get dividend calendar
 const response = await fetch(
-  'http://localhost:8000/v1/dividends/calendar?' +
+  '${apiUrl}/v1/dividends/calendar?' +
   new URLSearchParams({
     start_date: '2025-11-01',
     end_date: '2025-12-31'
@@ -71,14 +72,14 @@ const events = await response.json();
 events.data.forEach(event => {
   console.log(\`\${event.symbol}: \${event.ex_date} - $\$\\{event.amount}\`);
 });`,
-    curl: `curl "http://localhost:8000/v1/dividends/calendar?start_date=2025-11-01&end_date=2025-12-31"`,
+    curl: `curl "${apiUrl}/v1/dividends/calendar?start_date=2025-11-01&end_date=2025-12-31"`,
   },
   '/api/screeners': {
     python: `import requests
 
 # High-yield screener
 response = requests.get(
-    "http://localhost:8000/v1/screeners/high-yield",
+    "${apiUrl}/v1/screeners/high-yield",
     params={
         "min_yield": 6.0,
         "min_market_cap": 1000000000
@@ -90,7 +91,7 @@ for stock in results['data'][:10]:
     print(f"{stock['symbol']:6s} {stock['yield']:5.2f}% - {stock['company']}")`,
     javascript: `// High-yield screener
 const response = await fetch(
-  'http://localhost:8000/v1/screeners/high-yield?' +
+  '${apiUrl}/v1/screeners/high-yield?' +
   new URLSearchParams({
     min_yield: '6.0',
     min_market_cap: '1000000000'
@@ -101,14 +102,14 @@ const results = await response.json();
 results.data.slice(0, 10).forEach(stock => {
   console.log(\`\${stock.symbol} \${stock.yield}% - \${stock.company}\`);
 });`,
-    curl: `curl "http://localhost:8000/v1/screeners/high-yield?min_yield=6.0&min_market_cap=1000000000"`,
+    curl: `curl "${apiUrl}/v1/screeners/high-yield?min_yield=6.0&min_market_cap=1000000000"`,
   },
   '/api/analytics': {
     python: `import requests
 
 # Analyze portfolio
 response = requests.post(
-    "http://localhost:8000/v1/analytics/portfolio",
+    "${apiUrl}/v1/analytics/portfolio",
     json={
         "positions": [
             {"symbol": "AAPL", "shares": 100},
@@ -126,7 +127,7 @@ print(f"Annual Income: {analysis['annual_dividend_income']:,.2f}")
 print(f"Portfolio Yield: {analysis['portfolio_yield']:.2f}%")`,
     javascript: `// Analyze portfolio
 const response = await fetch(
-  'http://localhost:8000/v1/analytics/portfolio',
+  '${apiUrl}/v1/analytics/portfolio',
   {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -145,7 +146,7 @@ const response = await fetch(
 const analysis = await response.json();
 console.log(\`Current Value: $\$\\{analysis.current_value}\`);
 console.log(\`Annual Income: $\$\\{analysis.annual_dividend_income}\`);`,
-    curl: `curl -X POST "http://localhost:8000/v1/analytics/portfolio" \\
+    curl: `curl -X POST "${apiUrl}/v1/analytics/portfolio" \\
   -H "Content-Type: application/json" \\
   -d '{
     "positions": [
@@ -159,7 +160,7 @@ console.log(\`Annual Income: $\$\\{analysis.annual_dividend_income}\`);`,
 
 # Get price history
 response = requests.get(
-    "http://localhost:8000/v1/prices/AAPL",
+    "${apiUrl}/v1/prices/AAPL",
     params={
         "start_date": "2025-10-01",
         "end_date": "2025-11-01",
@@ -172,7 +173,7 @@ for bar in prices['data'][:5]:
     print(f"{bar['date']}: {bar['close']:.2f}")`,
     javascript: `// Get price history
 const response = await fetch(
-  'http://localhost:8000/v1/prices/AAPL?' +
+  '${apiUrl}/v1/prices/AAPL?' +
   new URLSearchParams({
     start_date: '2025-10-01',
     end_date: '2025-11-01',
@@ -184,12 +185,13 @@ const prices = await response.json();
 prices.data.slice(0, 5).forEach(bar => {
   console.log(\`\${bar.date}: $\${bar.close}\`);
 });`,
-    curl: `curl "http://localhost:8000/v1/prices/AAPL?start_date=2025-10-01&end_date=2025-11-01"`,
+    curl: `curl "${apiUrl}/v1/prices/AAPL?start_date=2025-10-01&end_date=2025-11-01"`,
   },
-};
+});
 
 export default function CodePanel({ endpoint, language, onLanguageChange }: CodePanelProps) {
   const [copied, setCopied] = useState(false);
+  const codeExamples = getCodeExamples(API_CONFIG.baseUrl);
 
   const code = codeExamples[endpoint]?.[language] || codeExamples['/api/stocks']?.[language] || '';
 

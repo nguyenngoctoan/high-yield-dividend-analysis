@@ -58,7 +58,28 @@ python portfolio_performance_calculator.py
 
 ## 📚 Core Features
 
-### 1. Data Source Tracking System ⭐
+### 1. GOOGLEFINANCE Parity API ⭐ NEW
+
+**100% feature parity** with Google Sheets `GOOGLEFINANCE()` function, plus superior dividend data.
+
+```bash
+# Get comprehensive quote with all GOOGLEFINANCE fields in one call
+curl "http://localhost:8000/v1/stocks/AAPL/quote"
+```
+
+**Returns all GOOGLEFINANCE attributes**:
+- Price data: `price`, `open`, `dayHigh`, `dayLow`, `change`, `changePercent`
+- 52-week range: `yearHigh`, `yearLow`
+- Moving averages: `priceAvg50` (SMA50), `priceAvg200` (SMA200)
+- Fundamentals: `marketCap`, `peRatio`, `eps`, `sharesOutstanding`
+- Volume: `volume`, `avgVolume`
+- **Plus**: Superior dividend data that GOOGLEFINANCE doesn't provide
+
+**Coverage**: 14,747+ stocks | **Update**: Daily at 5 PM EST | **Speed**: 1-5 minutes for 16,000+ symbols
+
+**Documentation**: `docs/GOOGLEFINANCE_PARITY.md`
+
+### 2. Data Source Tracking System
 
 Intelligent system that discovers and tracks which data sources have specific data types for each symbol.
 

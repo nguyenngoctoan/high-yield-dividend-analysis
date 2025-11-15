@@ -41,7 +41,7 @@ def get_stocks_with_null_company():
         supabase = get_supabase_client()
 
         # Query for NULL or empty company
-        result = supabase.table('stocks')\
+        result = supabase.table('raw_stocks')\
             .select('symbol,name,company,exchange')\
             .or_('company.is.null,company.eq.')\
             .execute()
@@ -152,7 +152,7 @@ def refresh_company_data(execute=False, limit=None):
             if execute:
                 try:
                     supabase = get_supabase_client()
-                    supabase.table('stocks')\
+                    supabase.table('raw_stocks')\
                         .update({'company': company_name})\
                         .eq('symbol', symbol)\
                         .execute()
@@ -200,11 +200,11 @@ def check_statistics():
         supabase = get_supabase_client()
 
         # Total stocks
-        total_result = supabase.table('stocks').select('symbol', count='exact').execute()
+        total_result = supabase.table('raw_stocks').select('symbol', count='exact').execute()
         total_count = total_result.count if hasattr(total_result, 'count') else 0
 
         # Stocks with NULL company
-        null_result = supabase.table('stocks')\
+        null_result = supabase.table('raw_stocks')\
             .select('symbol', count='exact')\
             .or_('company.is.null,company.eq.')\
             .execute()

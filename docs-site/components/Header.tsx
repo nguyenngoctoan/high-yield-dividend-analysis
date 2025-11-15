@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { API_CONFIG } from '@/lib/config';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,7 +16,7 @@ export default function Header() {
 
   async function checkAuth() {
     try {
-      const response = await fetch('http://localhost:8000/auth/status', {
+      const response = await fetch(`${API_CONFIG.baseUrl}/auth/status`, {
         credentials: 'include',
       });
       const data = await response.json();
@@ -30,7 +31,7 @@ export default function Header() {
   }
 
   function handleLogout() {
-    window.location.href = 'http://localhost:8000/auth/logout';
+    window.location.href = `${API_CONFIG.baseUrl}/auth/logout`;
   }
 
   return (
@@ -50,11 +51,8 @@ export default function Header() {
             <Link href="/api" className="text-gray-600 hover:text-gray-900 transition-colors">
               Documentation
             </Link>
-            <Link href="/examples" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Examples
-            </Link>
-            <Link href="/api-reference" className="text-gray-600 hover:text-gray-900 transition-colors">
-              API Reference
+            <Link href="/integrations" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Integrations
             </Link>
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
               Pricing
@@ -63,7 +61,7 @@ export default function Header() {
               API Keys
             </Link>
             <a
-              href="http://localhost:8000/health"
+              href={`${API_CONFIG.baseUrl}/health`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -93,7 +91,7 @@ export default function Header() {
                   </span>
                 </div>
                 <a
-                  href="http://localhost:8000/dashboard"
+                  href={`${API_CONFIG.baseUrl}/dashboard`}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all text-sm"
                 >
                   Dashboard
@@ -108,7 +106,7 @@ export default function Header() {
             ) : (
               <>
                 <a
-                  href="http://localhost:8000/login"
+                  href={`${API_CONFIG.baseUrl}/login`}
                   className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium transition-all"
                 >
                   Login
@@ -158,18 +156,11 @@ export default function Header() {
                 Documentation
               </Link>
               <Link
-                href="/examples"
+                href="/integrations"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Examples
-              </Link>
-              <Link
-                href="/api-reference"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                API Reference
+                Integrations
               </Link>
               <Link
                 href="/pricing"
@@ -186,7 +177,7 @@ export default function Header() {
                 API Keys
               </Link>
               <a
-                href="http://localhost:8000/health"
+                href={`${API_CONFIG.baseUrl}/health`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -210,7 +201,7 @@ export default function Header() {
                     </span>
                   </div>
                   <a
-                    href="http://localhost:8000/dashboard"
+                    href={`${API_CONFIG.baseUrl}/dashboard`}
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all text-center"
                   >
                     Dashboard
@@ -225,7 +216,7 @@ export default function Header() {
               ) : (
                 <>
                   <a
-                    href="http://localhost:8000/login"
+                    href={`${API_CONFIG.baseUrl}/login`}
                     className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium transition-all text-center"
                   >
                     Login

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft, Zap, Bug, Settings, AlertCircle, CheckCircle } from 'lucide-react'
+import { STOCK_COUNT } from '@/lib/config'
 
 export default function ChangelogPage() {
   return (
@@ -25,150 +26,233 @@ export default function ChangelogPage() {
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="space-y-12">
 
-          {/* Version 1.1.0 */}
+          {/* Version 0.1.11 - GOOGLEFINANCE Parity */}
           <VersionSection
-            version="1.1.0"
-            date="November 13, 2025"
+            version="0.1.11"
+            date="November 14, 2025"
             isLatest={true}
           >
             <ChangeItem
               type="feature"
-              title="Preset Date Ranges"
-              description="Added convenient preset date ranges for price and dividend queries: 1M, 3M, 6M, YTD, 1Y, 2Y, 5Y, MAX. No more manual date calculations!"
+              title="GOOGLEFINANCE() Parity - Quote Endpoint"
+              description="New /v1/stocks/{symbol}/quote endpoint with 100% feature parity with Google Sheets GOOGLEFINANCE() function. Get all price data, moving averages, 52-week ranges, fundamentals, and superior dividend data in a single API call."
             />
             <ChangeItem
               type="feature"
-              title="Sort Control"
-              description="New sort parameter for historical data endpoints. Sort by date ascending or descending to get data in your preferred order."
-            />
-            <ChangeItem
-              type="feature"
-              title="Adjusted Price Support"
-              description="Added adjusted=true parameter to get split and dividend-adjusted historical prices. Essential for accurate backtesting and performance analysis."
+              title="13 New Fundamental Data Fields"
+              description={`Added shares outstanding, 52-week high/low, average volume, daily change, 50-day and 200-day moving averages, and EPS. Coverage: ${STOCK_COUNT} stocks.`}
             />
             <ChangeItem
               type="improvement"
-              title="Enhanced Dividend Metrics"
-              description="Improved dividend metrics calculation with more accurate TTM (trailing twelve months) dividend totals and growth rate calculations."
+              title="Ultra-Fast Batch Updates"
+              description="Optimized daily updates to process 16,000+ symbols in 1-5 minutes (16-46x faster). Batch fetches 500 symbols per API call using FMP batch quote endpoint."
             />
             <ChangeItem
               type="improvement"
-              title="Better Error Messages"
-              description="More descriptive error messages with actionable suggestions when queries fail or return no data."
-            />
-            <ChangeItem
-              type="fix"
-              title="Fixed Date Range Edge Cases"
-              description="Resolved issues with date range queries at month and year boundaries. All date ranges now return consistent results."
+              title="Enhanced Bulk Endpoints"
+              description="Updated POST /v1/bulk/stocks and POST /v1/bulk/latest to include all new fundamental fields. Get comprehensive data for multiple stocks in one request."
             />
           </VersionSection>
 
-          {/* Version 1.0.2 */}
+          {/* Version 0.1.10 */}
           <VersionSection
-            version="1.0.2"
-            date="November 10, 2025"
+            version="0.1.10"
+            date="November 13, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="Stock Split History"
+              description="New GET /v1/stocks/{symbol}/splits endpoint to retrieve complete stock split history with ratios and dates."
+            />
+            <ChangeItem
+              type="feature"
+              title="Dividend Aristocrats & Kings"
+              description="Automatic identification of Dividend Aristocrats (25+ years of increases) and Dividend Kings (50+ years) via GET /v1/stocks/{symbol}/metrics endpoint."
+            />
+            <ChangeItem
+              type="feature"
+              title="Stock Fundamentals Endpoint"
+              description="New GET /v1/stocks/{symbol}/fundamentals providing market cap, P/E ratio, sector, industry, employee count, and IPO date."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.9 */}
+          <VersionSection
+            version="0.1.9"
+            date="November 12, 2025"
           >
             <ChangeItem
               type="improvement"
-              title="Performance Optimization"
-              description="Reduced average response time from 120ms to <100ms through database query optimization and intelligent caching."
-            />
-            <ChangeItem
-              type="improvement"
-              title="Expanded Exchange Coverage"
-              description="Added support for Canadian exchanges (TSX, TSXV, CSE) and OTC markets (OTCM, OTCX). Now covering 24,000+ symbols."
-            />
-            <ChangeItem
-              type="fix"
-              title="Fixed Dividend Calendar Timezone Issues"
-              description="Corrected timezone handling for ex-dividend dates. All dates now correctly displayed in market timezone (ET)."
-            />
-            <ChangeItem
-              type="fix"
-              title="ETF Holdings Data Accuracy"
-              description="Fixed data sync issues with ETF holdings. Holdings now update daily and reflect accurate positions."
+              title="Dividend Metrics Enhancement"
+              description="Enhanced GET /v1/stocks/{symbol}/metrics with consecutive payment tracking, growth streaks, and Aristocrat/King status calculation."
             />
           </VersionSection>
 
-          {/* Version 1.0.1 */}
+          {/* Version 0.1.8 */}
           <VersionSection
-            version="1.0.1"
+            version="0.1.8"
+            date="November 8, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="Google OAuth Authentication"
+              description="Secure user authentication with Google OAuth 2.0. Users can sign in with their Google accounts for API key management."
+            />
+            <ChangeItem
+              type="feature"
+              title="Tier-Based Access Control"
+              description="Four access tiers (Free, Starter, Premium, Professional) with progressive feature unlocking, rate limits, and bulk operation quotas."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.7 */}
+          <VersionSection
+            version="0.1.7"
             date="November 5, 2025"
           >
             <ChangeItem
               type="feature"
-              title="Dividend Screeners"
-              description="Added new screener endpoints for high-yield stocks and dividend growth stocks with customizable filters."
-            />
-            <ChangeItem
-              type="feature"
-              title="Sector Performance Analytics"
-              description="New endpoint to analyze dividend yield and performance by sector. Ideal for sector rotation strategies."
+              title="Next.js Documentation Site"
+              description="Comprehensive documentation portal with interactive examples, API reference, code samples, and changelog at localhost:3000."
             />
             <ChangeItem
               type="improvement"
-              title="Rate Limiting Headers"
-              description="Added X-RateLimit-* headers to all responses so you can track your usage and avoid hitting limits."
-            />
-            <ChangeItem
-              type="fix"
-              title="Fixed Special Character Handling"
-              description="Corrected handling of stock symbols with special characters (e.g., BRK.B, BF.A) in search queries."
+              title="API Documentation Improvements"
+              description="Added code examples in multiple languages (curl, Python, JavaScript) for all endpoints."
             />
           </VersionSection>
 
-          {/* Version 1.0.0 */}
+          {/* Version 0.1.6 */}
           <VersionSection
-            version="1.0.0"
+            version="0.1.6"
             date="November 1, 2025"
           >
             <ChangeItem
               type="feature"
-              title="Initial Public Release"
-              description="First public release of the Dividend API with comprehensive stock data, dividend history, and ETF metrics."
+              title="ETF Research Tools"
+              description="Complete ETF endpoints including holdings composition, AUM tracking, expense ratios, and investment strategy classification (80+ strategies)."
             />
             <ChangeItem
               type="feature"
-              title="23+ REST API Endpoints"
-              description="Complete REST API covering stocks, prices, dividends, ETFs, analytics, and search functionality."
+              title="Advanced Screeners"
+              description="Pre-built screeners for high-yield stocks, monthly dividend payers, dividend growth, and sector-based filtering."
             />
             <ChangeItem
               type="feature"
-              title="API Key Authentication"
-              description="Secure API key authentication with three tiers: Free (1,000 req/month), Pro (100,000 req/month), and Enterprise (unlimited)."
-            />
-            <ChangeItem
-              type="feature"
-              title="Token Bucket Rate Limiting"
-              description="Fair and predictable rate limiting using token bucket algorithm. Never get surprised by rate limit errors."
-            />
-            <ChangeItem
-              type="feature"
-              title="Covered Call ETF IV Data"
-              description="Industry-first: Implied Volatility (IV) data for covered call ETFs to help predict future distributions."
-            />
-            <ChangeItem
-              type="feature"
-              title="Multi-Exchange Support"
-              description="Coverage of major US exchanges (NYSE, NASDAQ, AMEX, CBOE) and alternative trading systems."
+              title="Portfolio Analytics"
+              description="POST /v1/analytics/portfolio endpoint for income projections, yield analysis, and distribution tracking."
             />
           </VersionSection>
 
-          {/* Beta Releases */}
+          {/* Version 0.1.5 */}
           <VersionSection
-            version="0.9.0 Beta"
-            date="October 20, 2025"
-            isBeta={true}
+            version="0.1.5"
+            date="October 28, 2025"
           >
             <ChangeItem
               type="feature"
-              title="Beta Launch"
-              description="Limited beta release to 100 selected testers. Gathered feedback on API design, performance, and feature requests."
+              title="Data Source Tracking System"
+              description="Intelligent system that discovers and caches which data sources (FMP, Yahoo, Alpha Vantage) have specific data for each symbol. Reduces API calls by 60-80%."
+            />
+            <ChangeItem
+              type="feature"
+              title="Implied Volatility Discovery"
+              description="Alpha Vantage Premium integration for IV data on covered call ETFs. Industry-first feature for predicting ETF distributions."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.4 */}
+          <VersionSection
+            version="0.1.4"
+            date="October 25, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="Multi-Source API Integration"
+              description="Hybrid data fetching with automatic fallback: FMP (primary) → Yahoo Finance → Alpha Vantage. Ensures maximum data availability."
             />
             <ChangeItem
               type="improvement"
-              title="Documentation Portal"
-              description="Launched comprehensive documentation with code examples in multiple languages (curl, Python, JavaScript, etc.)"
+              title="Modular Architecture Refactoring"
+              description="Complete codebase refactor from 3,821-line monolithic script to 16 focused modules. 90% code reduction in main script (376 lines)."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.3 */}
+          <VersionSection
+            version="0.1.3"
+            date="October 20, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="REST API Foundation"
+              description="Initial FastAPI implementation with core endpoints for stocks, dividends, and prices. OpenAPI/Swagger documentation at /docs."
+            />
+            <ChangeItem
+              type="feature"
+              title="Supabase Integration"
+              description="Database layer using Supabase (local container). Tables for stocks, prices, dividends, ETF holdings, and splits."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.2 */}
+          <VersionSection
+            version="0.1.2"
+            date="October 15, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="Automated Daily Updates"
+              description="Cron-based automation for daily price updates, dividend calendar refresh, and ETF holdings sync."
+            />
+            <ChangeItem
+              type="improvement"
+              title="Rate Limiting Implementation"
+              description="Adaptive rate limiters for all data sources with automatic backoff on 429 errors. FMP: 144 concurrent, AV: 2 concurrent, Yahoo: 3 concurrent."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.1 */}
+          <VersionSection
+            version="0.1.1"
+            date="October 10, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="Dividend History Collection"
+              description="Historical dividend payment collection with ex-dates, payment dates, and amounts. 686K+ dividend records."
+            />
+            <ChangeItem
+              type="feature"
+              title="Price History Collection"
+              description="Daily OHLCV price data collection with 20+ years of history. 20M+ price bars across 24K+ symbols."
+            />
+            <ChangeItem
+              type="improvement"
+              title="Symbol Validation"
+              description="Enhanced symbol validation with price activity check (7 days) and dividend history validation (1 year)."
+            />
+          </VersionSection>
+
+          {/* Version 0.1.0 */}
+          <VersionSection
+            version="0.1.0"
+            date="October 1, 2025"
+          >
+            <ChangeItem
+              type="feature"
+              title="Initial Project Setup"
+              description="High-yield dividend analysis system with Python data collection scripts. Support for FMP API integration and basic stock price fetching."
+            />
+            <ChangeItem
+              type="feature"
+              title="Symbol Discovery"
+              description="Multi-source symbol discovery from FMP and Alpha Vantage with deduplication and validation."
+            />
+            <ChangeItem
+              type="feature"
+              title="Portfolio Calculator"
+              description="Command-line portfolio performance calculator with dividend income projections and yield-on-cost tracking."
             />
           </VersionSection>
 

@@ -171,7 +171,7 @@ class DataSourceTracker:
         try:
             query = """
                 SELECT source
-                FROM raw_data_source_tracking
+                FROM divv_data_source_tracking
                 WHERE symbol = %s
                   AND data_type = %s
                   AND has_data = true
@@ -223,7 +223,7 @@ class DataSourceTracker:
         try:
             query = """
                 SELECT last_checked_at
-                FROM raw_data_source_tracking
+                FROM divv_data_source_tracking
                 WHERE symbol = %s
                   AND data_type = %s
                   AND source = %s
@@ -355,7 +355,7 @@ class DataSourceTracker:
                         COUNT(*) FILTER (WHERE has_data = true) as successful,
                         COUNT(*) FILTER (WHERE has_data = false) as unsuccessful,
                         COUNT(DISTINCT symbol) as unique_symbols
-                    FROM raw_data_source_tracking
+                    FROM divv_data_source_tracking
                     WHERE data_type = %s
                     GROUP BY source
                     ORDER BY source
@@ -370,7 +370,7 @@ class DataSourceTracker:
                         COUNT(*) FILTER (WHERE has_data = true) as successful,
                         COUNT(*) FILTER (WHERE has_data = false) as unsuccessful,
                         COUNT(DISTINCT symbol) as unique_symbols
-                    FROM raw_data_source_tracking
+                    FROM divv_data_source_tracking
                     GROUP BY data_type, source
                     ORDER BY data_type, source
                 """

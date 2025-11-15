@@ -76,7 +76,7 @@ def backfill_symbol(symbol):
         supabase = get_supabase_client()
 
         # Get dates for this symbol
-        result = supabase.table('stock_prices')\
+        result = supabase.table('raw_stock_prices')\
             .select('date,close')\
             .eq('symbol', symbol)\
             .is_('adj_close', 'null')\
@@ -109,7 +109,7 @@ def backfill_symbol(symbol):
 
             # Update this specific record
             try:
-                supabase.table('stock_prices')\
+                supabase.table('raw_stock_prices')\
                     .update({'adj_close': adj_close_value})\
                     .eq('symbol', symbol)\
                     .eq('date', date)\
@@ -130,7 +130,7 @@ def get_symbols_by_recency(days_threshold=30):
         supabase = get_supabase_client()
         cutoff_date = (datetime.now() - timedelta(days=days_threshold)).date()
 
-        result = supabase.table('stock_prices')\
+        result = supabase.table('raw_stock_prices')\
             .select('symbol')\
             .gte('date', str(cutoff_date))\
             .is_('adj_close', 'null')\

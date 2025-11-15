@@ -1,3 +1,7 @@
+'use client';
+
+import { API_CONFIG } from '@/lib/config';
+
 import Link from 'next/link';
 import Header from '@/components/Header';
 
@@ -22,7 +26,7 @@ export default function APIReferencePage() {
           <div className="mb-12 p-6 bg-gray-50 rounded-xl border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Base URL</h2>
             <code className="text-gray-700 font-mono">
-              http://localhost:8000/v1
+              ${API_CONFIG.baseUrl}/v1
             </code>
           </div>
 

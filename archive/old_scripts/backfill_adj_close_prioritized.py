@@ -88,7 +88,7 @@ def backfill_symbol_adj_close(symbol):
         supabase = get_supabase_client()
 
         # Get all price records for this symbol that need adj_close
-        result = supabase.table('stock_prices')\
+        result = supabase.table('raw_stock_prices')\
             .select('symbol,date,close')\
             .eq('symbol', symbol)\
             .is_('adj_close', 'null')\
@@ -167,7 +167,7 @@ def get_symbols_by_priority(days_threshold):
         cutoff_date = (datetime.now() - timedelta(days=days_threshold)).date()
 
         # Get symbols with updates since cutoff_date and missing adj_close
-        result = supabase.table('stock_prices')\
+        result = supabase.table('raw_stock_prices')\
             .select('symbol')\
             .gte('date', str(cutoff_date))\
             .is_('adj_close', 'null')\
@@ -281,14 +281,14 @@ def backfill_prioritized(max_workers=10, priority_levels=None):
     # Show remaining work
     try:
         supabase = get_supabase_client()
-        remaining_result = supabase.table('stock_prices')\
+        remaining_result = supabase.table('raw_stock_prices')\
             .select('symbol', count='exact')\
             .is_('adj_close', 'null')\
             .execute()
 
         if hasattr(remaining_result, 'count') and remaining_result.count:
             remaining_count = remaining_result.count
-            remaining_symbols_result = supabase.table('stock_prices')\
+            remaining_symbols_result = supabase.table('raw_stock_prices')\
                 .select('symbol')\
                 .is_('adj_close', 'null')\
                 .execute()
