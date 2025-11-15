@@ -20,7 +20,7 @@ SUPABASE_URL=https://uykxgbrzpfswbdxtyzlv.supabase.co
 SUPABASE_KEY=your_anon_key_here  # This is the anon key
 
 # NEW - Add this line:
-SUPABASE_SERVICE_ROLE_KEY=***REMOVED***  # Service role key for admin operations
+SUPABASE_SERVICE_ROLE_KEY=PngVkEu9kqrxIinO  # Service role key for admin operations
 ```
 
 ### 2. Update `supabase_helpers.py`

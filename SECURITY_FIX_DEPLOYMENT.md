@@ -122,7 +122,7 @@ export PGHOST=db.uykxgbrzpfswbdxtyzlv.supabase.co
 export PGPORT=5432
 export PGDATABASE=postgres
 export PGUSER=postgres
-export PGPASSWORD="***REMOVED***"
+export PGPASSWORD="PngVkEu9kqrxIinO"
 
 # 2. Apply migration
 psql -f supabase/migrations/20251115_fix_function_security_critical.sql

@@ -14,7 +14,7 @@ PGHOST=db.uykxgbrzpfswbdxtyzlv.supabase.co \
 PGPORT=5432 \
 PGDATABASE=postgres \
 PGUSER=postgres \
-PGPASSWORD="***REMOVED***" \
+PGPASSWORD="PngVkEu9kqrxIinO" \
 psql -f /path/to/migration.sql
 ```
 
@@ -241,7 +241,7 @@ export PGHOST=db.uykxgbrzpfswbdxtyzlv.supabase.co
 export PGPORT=5432
 export PGDATABASE=postgres
 export PGUSER=postgres
-export PGPASSWORD="***REMOVED***"
+export PGPASSWORD="PngVkEu9kqrxIinO"
 
 # Then run migrations without exposing password
 psql -f migration.sql
@@ -250,7 +250,7 @@ psql -f migration.sql
 Or use `.pgpass` file (more secure):
 ```bash
 # ~/.pgpass (chmod 600)
-db.uykxgbrzpfswbdxtyzlv.supabase.co:5432:postgres:postgres:***REMOVED***
+db.uykxgbrzpfswbdxtyzlv.supabase.co:5432:postgres:postgres:PngVkEu9kqrxIinO
 ```
 
 ---
