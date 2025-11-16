@@ -9,7 +9,7 @@ Scrapes comprehensive data from all NEOS ETF pages including:
 - Distributions
 - Holdings
 
-All data stored as JSON in raw_neos_etf_data table.
+All data stored as JSON in raw_etfs_neos table.
 """
 
 import sys
@@ -795,7 +795,7 @@ class NEOSScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_neos_etf_data', [record])
+            result = supabase_upsert('raw_etfs_neos', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

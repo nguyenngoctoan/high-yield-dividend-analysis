@@ -10,7 +10,7 @@ Scrapes comprehensive data from all YieldMax ETF pages including:
 - Distributions
 - Top 10 holdings
 
-All data stored as JSON in raw_yieldmax_etf_data table.
+All data stored as JSON in raw_etfs_yieldmax table.
 """
 
 import sys
@@ -496,7 +496,7 @@ class YieldMaxScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_yieldmax_etf_data', [record])
+            result = supabase_upsert('raw_etfs_yieldmax', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

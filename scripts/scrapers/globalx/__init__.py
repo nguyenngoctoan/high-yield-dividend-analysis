@@ -40,7 +40,7 @@ Usage:
     results = scrape_all_etfs(category='Covered Call')
 
 Database:
-    Table: raw_globalx_etf_data
+    Table: raw_etfs_globalx
     View: v_globalx_latest (latest record per ticker)
     Migration: supabase/migrations/20251116_add_globalx_etf_data.sql
 

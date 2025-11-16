@@ -280,10 +280,10 @@ python scrape_purpose_all.py --all --limit 10
 
 ## Database Schema
 
-Data is stored in `raw_purpose_etf_data` table:
+Data is stored in `raw_etfs_purpose` table:
 
 ```sql
-CREATE TABLE raw_purpose_etf_data (
+CREATE TABLE raw_etfs_purpose (
     id BIGSERIAL PRIMARY KEY,
     ticker VARCHAR(10) NOT NULL,
     fund_name TEXT,

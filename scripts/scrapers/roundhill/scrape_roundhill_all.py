@@ -9,7 +9,7 @@ Scrapes comprehensive data from all Roundhill ETF pages including:
 - Distributions
 - Holdings
 
-All data stored as JSON in raw_roundhill_etf_data table.
+All data stored as JSON in raw_etfs_roundhill table.
 """
 
 import sys
@@ -803,7 +803,7 @@ class RoundhillScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_roundhill_etf_data', [record])
+            result = supabase_upsert('raw_etfs_roundhill', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

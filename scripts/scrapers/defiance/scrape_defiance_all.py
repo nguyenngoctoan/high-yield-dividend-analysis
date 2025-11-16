@@ -9,7 +9,7 @@ Scrapes comprehensive data from all Defiance ETF pages including:
 - Distributions
 - Holdings
 
-All data stored as JSON in raw_defiance_etf_data table.
+All data stored as JSON in raw_etfs_defiance table.
 """
 
 import sys
@@ -1177,7 +1177,7 @@ class DefianceScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_defiance_etf_data', [record])
+            result = supabase_upsert('raw_etfs_defiance', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

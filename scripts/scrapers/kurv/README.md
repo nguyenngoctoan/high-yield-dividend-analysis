@@ -85,10 +85,10 @@ docker exec dividend-api python3 /app/scripts/scrapers/kurv/scrape_kurv_all.py -
 
 **Database Table:**
 
-Data is stored in the `raw_kurv_etf_data` table:
+Data is stored in the `raw_etfs_kurv` table:
 
 ```sql
-CREATE TABLE raw_kurv_etf_data (
+CREATE TABLE raw_etfs_kurv (
     id BIGSERIAL PRIMARY KEY,
     ticker VARCHAR(10) NOT NULL,
     fund_name TEXT,
@@ -138,7 +138,7 @@ SELECT
     market_price,
     premium_discount,
     performance_data->>'YTD' as ytd
-FROM raw_kurv_etf_data
+FROM raw_etfs_kurv
 WHERE ticker = 'KQQQ'
 ORDER BY scraped_at DESC
 LIMIT 1;
@@ -249,7 +249,7 @@ To add new Kurv ETFs to the scraper:
    }
    ```
 3. Test with: `python3 scrape_kurv_all.py --ticker NEWF`
-4. All data will be stored in the same `raw_kurv_etf_data` table
+4. All data will be stored in the same `raw_etfs_kurv` table
 
 ## Technical Details
 

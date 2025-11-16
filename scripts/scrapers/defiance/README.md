@@ -137,10 +137,10 @@ docker exec dividend-api python3 /app/scripts/scrapers/defiance/scrape_defiance_
 
 **Database Table:**
 
-Data is stored in the `raw_defiance_etf_data` table:
+Data is stored in the `raw_etfs_defiance` table:
 
 ```sql
-CREATE TABLE raw_defiance_etf_data (
+CREATE TABLE raw_etfs_defiance (
     id BIGSERIAL PRIMARY KEY,
     ticker VARCHAR(10) NOT NULL,
     fund_name TEXT,
@@ -190,7 +190,7 @@ SELECT
     market_price,
     premium_discount,
     performance_data->>'YTD' as ytd
-FROM raw_defiance_etf_data
+FROM raw_etfs_defiance
 WHERE ticker = 'QQQY'
 ORDER BY scraped_at DESC
 LIMIT 1;
@@ -299,7 +299,7 @@ To add new Defiance ETFs to the scraper:
    }
    ```
 3. Test with: `python3 scrape_defiance_all.py --ticker NEWF`
-4. All data will be stored in the same `raw_defiance_etf_data` table
+4. All data will be stored in the same `raw_etfs_defiance` table
 
 ## Technical Details
 

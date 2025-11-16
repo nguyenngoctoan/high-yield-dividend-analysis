@@ -13,7 +13,7 @@ Scrapes comprehensive data from all 81 Purpose Investments ETF pages including:
 Uses server-side rendered data from Next.js - NO Selenium needed!
 All data extracted from embedded JSON in __NEXT_DATA__ script tag.
 
-All data stored as JSON in raw_purpose_etf_data table.
+All data stored as JSON in raw_etfs_purpose table.
 """
 
 import sys
@@ -859,7 +859,7 @@ class PurposeScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_purpose_etf_data', [record])
+            result = supabase_upsert('raw_etfs_purpose', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

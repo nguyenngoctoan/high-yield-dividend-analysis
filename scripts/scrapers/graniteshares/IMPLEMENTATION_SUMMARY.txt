@@ -10,7 +10,7 @@ FILES CREATED (4):
 1. supabase/migrations/20251116_add_graniteshares_etf_data.sql
    - Lines: 134
    - Description: Complete database migration for GraniteShares ETF data
-   - Table: raw_graniteshares_etf_data
+   - Table: raw_etfs_graniteshares
    - View: v_graniteshares_latest
    - Indexes: 10 (6 standard + 4 GIN for JSONB)
    - Policies: 2 RLS policies

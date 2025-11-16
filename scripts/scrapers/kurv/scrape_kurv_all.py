@@ -9,7 +9,7 @@ Scrapes comprehensive data from all Kurv ETF pages including:
 - Distributions
 - Holdings
 
-All data stored as JSON in raw_kurv_etf_data table.
+All data stored as JSON in raw_etfs_kurv table.
 """
 
 import sys
@@ -1034,7 +1034,7 @@ class KurvScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_kurv_etf_data', [record])
+            result = supabase_upsert('raw_etfs_kurv', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

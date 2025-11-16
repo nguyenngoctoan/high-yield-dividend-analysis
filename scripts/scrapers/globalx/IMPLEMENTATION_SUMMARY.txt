@@ -15,7 +15,7 @@ FILES CREATED (4)
    Path: supabase/migrations/20251116_add_globalx_etf_data.sql
    
    Creates:
-   - Table: raw_globalx_etf_data
+   - Table: raw_etfs_globalx
    - View: v_globalx_latest (DISTINCT ON ticker)
    - Indexes: 12 total (6 B-tree + 6 GIN for JSONB)
    - Triggers: updated_at auto-update

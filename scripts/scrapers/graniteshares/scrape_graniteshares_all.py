@@ -9,7 +9,7 @@ Scrapes comprehensive data from all GraniteShares ETF pages including:
 - Distributions
 - Holdings
 
-All data stored as JSON in raw_graniteshares_etf_data table.
+All data stored as JSON in raw_etfs_graniteshares table.
 """
 
 import sys
@@ -818,7 +818,7 @@ class GraniteSharesScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_graniteshares_etf_data', [record])
+            result = supabase_upsert('raw_etfs_graniteshares', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

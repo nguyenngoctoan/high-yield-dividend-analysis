@@ -28,7 +28,7 @@ Supports 13 categories:
 12. Asset Allocation (8 ETFs)
 13. BetaPro - Leveraged/Inverse (7 ETFs) - 2x
 
-All data stored as JSON in raw_globalx_etf_data table.
+All data stored as JSON in raw_etfs_globalx table.
 """
 
 import sys
@@ -1100,7 +1100,7 @@ class GlobalXScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_globalx_etf_data', [record])
+            result = supabase_upsert('raw_etfs_globalx', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")

@@ -516,7 +516,7 @@ ORDER BY (option_yield)::NUMERIC + (dividend_yield)::NUMERIC DESC;
 ./scrape_globalx_all.py --test
 
 # Check database records
-psql -c "SELECT COUNT(*), MAX(scraped_at) FROM raw_globalx_etf_data;"
+psql -c "SELECT COUNT(*), MAX(scraped_at) FROM raw_etfs_globalx;"
 ```
 
 ## Technical Details
@@ -534,7 +534,7 @@ psql -c "SELECT COUNT(*), MAX(scraped_at) FROM raw_globalx_etf_data;"
 - Performance data in multiple tables (annualized + calendar year)
 
 ### Data Storage
-- **Table**: `raw_globalx_etf_data`
+- **Table**: `raw_etfs_globalx`
 - **View**: `v_globalx_latest` (latest record per ticker)
 - **JSONB Columns**: fund_details, holdings, distributions, performance_data, sector_allocation, geographic_allocation
 - **Unique Constraint**: (ticker, scraped_date)

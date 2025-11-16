@@ -164,10 +164,10 @@ python scrape_graniteshares_all.py --all --limit 10
 
 ## Database Schema
 
-Data is stored in `raw_graniteshares_etf_data` table:
+Data is stored in `raw_etfs_graniteshares` table:
 
 ```sql
-CREATE TABLE raw_graniteshares_etf_data (
+CREATE TABLE raw_etfs_graniteshares (
     id BIGSERIAL PRIMARY KEY,
     ticker VARCHAR(10) NOT NULL,
     fund_name TEXT,

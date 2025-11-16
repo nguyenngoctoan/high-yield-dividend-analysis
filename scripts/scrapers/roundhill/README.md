@@ -109,10 +109,10 @@ docker exec dividend-api python3 /app/scripts/scrapers/roundhill/scrape_roundhil
 
 **Database Table:**
 
-Data is stored in the `raw_roundhill_etf_data` table:
+Data is stored in the `raw_etfs_roundhill` table:
 
 ```sql
-CREATE TABLE raw_roundhill_etf_data (
+CREATE TABLE raw_etfs_roundhill (
     id BIGSERIAL PRIMARY KEY,
     ticker VARCHAR(10) NOT NULL,
     fund_name TEXT,
@@ -153,7 +153,7 @@ SELECT
     launch_date,
     holdings_count,
     performance_data->>'YTD' as ytd
-FROM raw_roundhill_etf_data
+FROM raw_etfs_roundhill
 WHERE ticker = 'METV'
 ORDER BY scraped_at DESC
 LIMIT 1;
@@ -208,7 +208,7 @@ To add new Roundhill ETFs to the scraper:
    }
    ```
 3. Test with: `python3 scrape_roundhill_all.py --ticker NEWF`
-4. All data will be stored in the same `raw_roundhill_etf_data` table
+4. All data will be stored in the same `raw_etfs_roundhill` table
 
 ## Technical Details
 
