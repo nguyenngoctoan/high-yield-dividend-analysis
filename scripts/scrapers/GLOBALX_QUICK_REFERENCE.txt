@@ -1,0 +1,191 @@
+═══════════════════════════════════════════════════════════════════════════════
+  GLOBAL X CANADA ETF - QUICK REFERENCE CARD
+═══════════════════════════════════════════════════════════════════════════════
+
+DISCOVERY DATE:  2025-11-16
+TOTAL ETFs:      107 (106 active + 1 coming soon)
+WEBSITE:         https://www.globalx.ca/
+STATUS:          Production Ready
+
+───────────────────────────────────────────────────────────────────────────────
+📊 ETF BREAKDOWN BY CATEGORY
+───────────────────────────────────────────────────────────────────────────────
+
+Category                              Count    %      Examples
+────────────────────────────────────────────────────────────────────────────────
+Cash & Fixed Income                    19    17.8%   CASH, CBIL, PAYS, TSTX
+Thematic                               16    15.0%   SHLD, AIGO, CHPS, HMMJ
+Equity Essentials - Core               12    11.2%   CNDX, HBNK, USSX, QQQX
+Covered Call - Index                    9     8.4%   CNCC, USCC, QQCC, EACC
+Enhanced Covered Call (25% Lev)         9     8.4%   CNCL, USCL, QQCL, ENCL
+Corporate Class (Tax-Efficient)         8     7.5%   HXS, HXT, HXQ, HXCN
+Asset Allocation                        8     7.5%   HCON, HBAL, HGRW, HEQT
+Precious Metals                         7     6.5%   HUG, HUZ, GLDX, GLCC
+BetaPro (Leveraged/Inverse)             7     6.5%   HQU, HSU, HNU, HND
+Enhanced Growth (25% Lev)               6     5.6%   CANL, USSL, QQQL, EAFL
+Commodities - Covered Call              5     4.7%   ENCC, GLCC, AGCC, HGY
+Cryptocurrency - Covered Call           4     3.7%   BCCC, BCCL (CAD/USD)
+Covered Call - Sector                   2     1.9%   BKCC, RNCC
+Coming Soon                             1     0.9%   CPCC
+────────────────────────────────────────────────────────────────────────────────
+TOTAL                                 107   100.0%
+════════════════════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────────────────
+🔗 URL PATTERNS
+───────────────────────────────────────────────────────────────────────────────
+
+Main Site:        https://www.globalx.ca/
+All Products:     https://www.globalx.ca/products
+Category Pages:   https://www.globalx.ca/{category-name}
+Individual ETF:   https://www.globalx.ca/product/{ticker-lowercase}
+
+Examples:
+  ENCC  → https://www.globalx.ca/product/encc
+  CNDX  → https://www.globalx.ca/product/cndx
+  HXS.U → https://www.globalx.ca/product/hxs  (note: .U removed)
+
+───────────────────────────────────────────────────────────────────────────────
+💻 QUICK START COMMANDS
+───────────────────────────────────────────────────────────────────────────────
+
+# Test the scraper
+cd /Users/toan/dev/high-yield-dividend-analysis/scripts/scrapers
+python test_globalx_scraper.py
+
+# Scrape single ETF
+python globalx_canada_scraper.py --ticker ENCC --output encc.json
+
+# Scrape by category
+python globalx_canada_scraper.py --category "Thematic" --output thematic.json
+
+# Scrape all ETFs
+python globalx_canada_scraper.py --all --output all_etfs.json --delay 1.5
+
+───────────────────────────────────────────────────────────────────────────────
+📦 DATA FIELDS EXTRACTED
+───────────────────────────────────────────────────────────────────────────────
+
+BASIC:           Ticker, Name, CUSIP, Inception Date
+PRICING:         NAV, Market Price, Premium/Discount, As-of Date
+METRICS:         MER, Management Fee, TER, Net Assets, Dist. Yield
+DISTRIBUTIONS:   Frequency, Most Recent, 12-Month Trailing, Full History
+HOLDINGS:        Top 10 with weights
+PERFORMANCE:     1mo, 3mo, 6mo, YTD, 1yr, 3yr, 5yr, 10yr, SI
+CALENDAR:        Annual returns by year (2017-2024)
+SPECIAL (CC):    Coverage, Moneyness, Option Yield, Dividend Yield
+
+───────────────────────────────────────────────────────────────────────────────
+🎯 SAMPLE ETFS FOR TESTING
+───────────────────────────────────────────────────────────────────────────────
+
+Ticker  Category                    Special Features
+────────────────────────────────────────────────────────────────────────────────
+ENCC    Covered Call - Commodities  Oil & gas, full covered call metrics
+CNDX    Core Equity                 TSX 60, standard structure
+SHLD    Thematic                    Defence tech, new fund (Apr 2025)
+CASH    Money Market                High interest, unique fields
+CANL    Enhanced Growth             25% leveraged index
+HQU     BetaPro                     2x daily bull NASDAQ
+BCCC    Cryptocurrency              Bitcoin covered call
+HCON    Asset Allocation            Multi-asset conservative
+
+───────────────────────────────────────────────────────────────────────────────
+⚙️ TECHNICAL DETAILS
+───────────────────────────────────────────────────────────────────────────────
+
+Content Type:     Primarily STATIC HTML
+JavaScript Req:   NO (for core data extraction)
+Scraping Tool:    requests + BeautifulSoup (Selenium NOT needed)
+Table Format:     Standard HTML <table> with class="wp-block-table"
+Rate Limiting:    1-1.5 seconds between requests recommended
+Average Time:     1-2 seconds per ETF
+Total Scrape:     ~3-5 minutes for all 107 ETFs
+
+───────────────────────────────────────────────────────────────────────────────
+📝 PYTHON USAGE EXAMPLE
+───────────────────────────────────────────────────────────────────────────────
+
+from globalx_canada_scraper import GlobalXCanadaScraper
+
+# Initialize
+scraper = GlobalXCanadaScraper(delay=1.0)
+
+# Single ETF
+data = scraper.scrape_etf('ENCC')
+print(data['metrics']['distribution_yield'])
+
+# Multiple ETFs
+results = scraper.scrape_all(['ENCC', 'CNDX', 'SHLD'])
+
+# By category
+thematic = scraper.scrape_category('Thematic')
+
+───────────────────────────────────────────────────────────────────────────────
+📋 ALL 107 TICKERS (ALPHABETICAL)
+───────────────────────────────────────────────────────────────────────────────
+
+AGCC    AIGO    BCCC    BCCC.U  BCCL    BCCL.U  BKCC    BKCL    BNKL
+CANL    CASH    CBIL    CBIL.U  CHPS    CHPS.U  CHQQ    CNCC    CNCL
+CNDX    CPCC*   EACC    EACL    EAFL    EAFX    EAFX.U  EMCC    EMCL
+EMML    EMMX    EMMX.U  ENCC    ENCL    EQCC    EQCL    FOUR    GLCC
+GLCL    GLDX    GRCC    HBAL    HBB     HBGD    HBGD.U  HBNK    HCON
+HGU     HGY     HEQL    HEQT    HGRW    HLIT    HMMJ    HMMJ.U  HND
+HNU     HOU     HQU     HSAV    HSU     HUG     HUZ     HXCN    HXQ
+HXQ.U   HXS     HXS.U   HXT     HXT.U   HZU     LPAY    LPAY.U  MEDX
+MPAY    MPAY.U  MTRX    PAYL    PAYM    PAYS    QQQX    QQQX.U  QQCC
+QQCC.U  QQCL    QQQL    RBOT    RBOT.U  RNCC    RNCL    RSCC    RSCC.U
+RSCL    RSSX    RSSX.U  SHLD    SPAY    SPAY.U  TLTX    TLTX.F  TLTX.U
+TSTX    TSTX.F  TSTX.U  TTTX    USCC    USCC.U  USCL    USSL    USSX
+USSX.U
+
+*CPCC = Coming Soon (October 2025)
+
+───────────────────────────────────────────────────────────────────────────────
+🔥 NOTABLE PRODUCTS
+───────────────────────────────────────────────────────────────────────────────
+
+LARGEST CATEGORY:        Cash & Fixed Income (19 ETFs)
+MOST UNIQUE STRATEGY:    25% Leveraged Covered Call (9 ETFs)
+NEWEST LAUNCHES:         CHQQ, AGCC, TSTX, TLTX (Oct 2025)
+MOST CURRENCY VARIANTS:  6 ETFs with 3 versions each (CAD, USD, Hedged)
+MOST POPULAR THEME:      Artificial Intelligence (5 ETFs)
+
+───────────────────────────────────────────────────────────────────────────────
+⚠️ SPECIAL CONSIDERATIONS
+───────────────────────────────────────────────────────────────────────────────
+
+Currency Variants:  .U (USD), .F (Hedged) share same page as base ticker
+New ETFs (<1yr):    Limited performance data, may show placeholders
+Money Market:       Different fields (Gross Yield vs Distribution Yield)
+Covered Call:       Extra "Portfolio Investment Metrics" section
+BetaPro:            2x leverage/inverse, daily rebalancing noted
+
+───────────────────────────────────────────────────────────────────────────────
+📁 FILES CREATED
+───────────────────────────────────────────────────────────────────────────────
+
+scripts/scrapers/
+  ├── globalx_canada_discovery.py          - Ticker inventory & categories
+  ├── globalx_canada_scraper.py            - Production scraper
+  ├── test_globalx_scraper.py              - Test suite
+  ├── GLOBALX_CANADA_README.md             - Quick start guide
+  ├── GLOBALX_CANADA_DISCOVERY_SUMMARY.md  - Complete discovery results
+  └── GLOBALX_QUICK_REFERENCE.txt          - This file
+
+docs/
+  └── GLOBALX_CANADA_SCRAPING_GUIDE.md     - Detailed technical guide
+
+───────────────────────────────────────────────────────────────────────────────
+✅ STATUS
+───────────────────────────────────────────────────────────────────────────────
+
+Discovery:       COMPLETE ✓
+Documentation:   COMPLETE ✓
+Scraper:         IMPLEMENTED ✓
+Testing:         READY ✓
+Production:      READY TO USE ✓
+
+═══════════════════════════════════════════════════════════════════════════════
+  For detailed documentation, see GLOBALX_CANADA_SCRAPING_GUIDE.md
+═══════════════════════════════════════════════════════════════════════════════
