@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup
 import argparse
 
 # Add paths to import helpers
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..'))
 
 from supabase_helpers import supabase_upsert, get_supabase_client
 

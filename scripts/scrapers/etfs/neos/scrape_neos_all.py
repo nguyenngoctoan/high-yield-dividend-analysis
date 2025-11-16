@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Defiance ETF Scraper (All Funds)
+NEOS Funds ETF Scraper (All Funds)
 
-Scrapes comprehensive data from all Defiance ETF pages including:
+Scrapes comprehensive data from all NEOS ETF pages including:
 - Performance data
 - Fund overview
-- Fund details (expense ratio, inception date, distribution info)
+- Fund details (expense ratio, inception date, net assets)
 - Distributions
 - Holdings
 
-All data stored as JSON in raw_etfs_defiance table.
+All data stored as JSON in raw_etfs_neos table.
 """
 
 import sys
@@ -24,7 +24,7 @@ import argparse
 import re
 
 # Add paths to import helpers
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..'))
 
 from supabase_helpers import supabase_upsert, get_supabase_client
 
@@ -36,335 +36,78 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Defiance ETF Configuration
-DEFIANCE_ETFS = {
-    # Thematic (6)
-    'QTUM': {
-        'name': 'Defiance Quantum ETF',
-        'category': 'Thematic',
-        'url': 'https://www.defianceetfs.com/qtum/'
+# NEOS ETF Configuration
+NEOS_ETFS = {
+    'SPYI': {
+        'name': 'NEOS S&P 500 High Income ETF',
+        'url': 'https://neosfunds.com/spyi/'
     },
-    'JEDI': {
-        'name': 'Defiance Star Wars & Beyond ETF',
-        'category': 'Thematic',
-        'url': 'https://www.defianceetfs.com/jedi/'
+    'QQQI': {
+        'name': 'NEOS Nasdaq-100 High Income ETF',
+        'url': 'https://neosfunds.com/qqqi/'
     },
-    'SIXG': {
-        'name': 'Defiance Connective Technologies ETF',
-        'category': 'Thematic',
-        'url': 'https://www.defianceetfs.com/sixg/'
+    'IWMI': {
+        'name': 'NEOS Russell 2000 High Income ETF',
+        'url': 'https://neosfunds.com/iwmi/'
     },
-    'TRIL': {
-        'name': 'Defiance Fintech AI ETF',
-        'category': 'Thematic',
-        'url': 'https://www.defianceetfs.com/tril/'
+    'NIHI': {
+        'name': 'NEOS Enhanced Income 1-3 Month T-Bill ETF',
+        'url': 'https://neosfunds.com/nihi/'
     },
-    'XMAG': {
-        'name': 'Defiance Mega Cap ETF',
-        'category': 'Thematic',
-        'url': 'https://www.defianceetfs.com/xmag/'
+    'QQQH': {
+        'name': 'NEOS Nasdaq-100 Enhanced Income ETF',
+        'url': 'https://neosfunds.com/qqqh/'
     },
-    'AIPO': {
-        'name': 'Defiance AI & Productivity ETF',
-        'category': 'Thematic',
-        'url': 'https://www.defianceetfs.com/aipo/'
+    'SPYH': {
+        'name': 'NEOS S&P 500 Enhanced Income ETF',
+        'url': 'https://neosfunds.com/spyh/'
     },
-
-    # Leveraged (39)
-    'MSTX': {
-        'name': 'Defiance Daily Target 2X Long MSTR ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/mstx/'
+    'BTCI': {
+        'name': 'NEOS Bitcoin High Income ETF',
+        'url': 'https://neosfunds.com/btci/'
     },
-    'SMCX': {
-        'name': 'Defiance Daily Target 2X Long SMCI ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/smcx/'
+    'IYRI': {
+        'name': 'NEOS iShares Russell 2000 ETF Enhanced Income ETF',
+        'url': 'https://neosfunds.com/iyri/'
     },
-    'HIMZ': {
-        'name': 'Defiance Daily Target 2X Short MSTR ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/himz/'
+    'IAUI': {
+        'name': 'NEOS iShares Gold Trust Enhanced Income ETF',
+        'url': 'https://neosfunds.com/iaui/'
     },
-    'LLYX': {
-        'name': 'Defiance Daily Target 2X Long LILY ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/llyx/'
+    'BNDI': {
+        'name': 'NEOS Enhanced Income Aggregate Bond ETF',
+        'url': 'https://neosfunds.com/bndi/'
     },
-    'IONX': {
-        'name': 'Defiance Daily Target 2X Long IONQ ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/ionx/'
+    'HYBI': {
+        'name': 'NEOS Enhanced Income High Yield Bond ETF',
+        'url': 'https://neosfunds.com/hybi/'
     },
-    'AVGX': {
-        'name': 'Defiance Daily Target 2X Long AVGO ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/avgx/'
+    'CSHI': {
+        'name': 'NEOS Enhanced Income Cash Alternative ETF',
+        'url': 'https://neosfunds.com/cshi/'
     },
-    'NVOX': {
-        'name': 'Defiance Daily Target 2X Long NVDA ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/nvox/'
-    },
-    'SOFX': {
-        'name': 'Defiance Daily Target 2X Long SOFI ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/sofx/'
-    },
-    'RKLX': {
-        'name': 'Defiance Daily Target 2X Long RKLB ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/rklx/'
-    },
-    'OKLL': {
-        'name': 'Defiance Daily Target 2X Long OKLO ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/okll/'
-    },
-    'PLTZ': {
-        'name': 'Defiance Daily Target 2X Short PLTR ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/pltz/'
-    },
-    'ORCX': {
-        'name': 'Defiance Daily Target 2X Long ORCL ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/orcx/'
-    },
-    'RGTX': {
-        'name': 'Defiance Daily Target 2X Long RGTI ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/rgtx/'
-    },
-    'SMST': {
-        'name': 'Defiance Daily Target 2X Long SMST ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/smst/'
-    },
-    'RIOX': {
-        'name': 'Defiance Daily Target 2X Long RIOT ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/riox/'
-    },
-    'SOUX': {
-        'name': 'Defiance Daily Target 2X Long SQ ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/soux/'
-    },
-    'HOOX': {
-        'name': 'Defiance Daily Target 2X Long HOOD ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/hoox/'
-    },
-    'SMCZ': {
-        'name': 'Defiance Daily Target 2X Short SMCI ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/smcz/'
-    },
-    'IONZ': {
-        'name': 'Defiance Daily Target 2X Short IONQ ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/ionz/'
-    },
-    'QPUX': {
-        'name': 'Defiance Daily Target 2X Long QBTS ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/qpux/'
-    },
-    'VSTL': {
-        'name': 'Defiance Daily Target 2X Long VST ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/vstl/'
-    },
-    'DKNX': {
-        'name': 'Defiance Daily Target 2X Long DKS ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/dknx/'
-    },
-    'JPX': {
-        'name': 'Defiance Daily Target 2X Long JPM ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/jpx/'
-    },
-    'CVNX': {
-        'name': 'Defiance Daily Target 2X Long CVS ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/cvnx/'
-    },
-    'VIXI': {
-        'name': 'Defiance Daily Target 2X Long VIX ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/vixi/'
-    },
-    'ANEL': {
-        'name': 'Defiance Daily Target 2X Long ANET ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/anel/'
-    },
-    'LLYZ': {
-        'name': 'Defiance Daily Target 2X Short LILY ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/llyz/'
-    },
-    'XPM': {
-        'name': 'Defiance Daily Target 2X Long PM ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/xpm/'
-    },
-    'QBTZ': {
-        'name': 'Defiance Daily Target 2X Short QBTS ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/qbtz/'
-    },
-    'OSCX': {
-        'name': 'Defiance Daily Target 2X Long OSCR ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/oscx/'
-    },
-    'RGTZ': {
-        'name': 'Defiance Daily Target 2X Short RGTI ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/rgtz/'
-    },
-    'LMNX': {
-        'name': 'Defiance Daily Target 2X Long LMND ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/lmnx/'
-    },
-    'IRE': {
-        'name': 'Defiance Daily Target 2X Long IREN ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/ire/'
-    },
-    'QSU': {
-        'name': 'Defiance Daily Target 2X Long QSI ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/qsu/'
-    },
-    'MPL': {
-        'name': 'Defiance Daily Target 2X Long MPWR ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/mpl/'
-    },
-    'AVXX': {
-        'name': 'Defiance Daily Target 2X Short AVGO ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/avxx/'
-    },
-    'HOOZ': {
-        'name': 'Defiance Daily Target 2X Short HOOD ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/hooz/'
-    },
-    'BMNZ': {
-        'name': 'Defiance Daily Target 2X Short BITF ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/bmnz/'
-    },
-    'DAMD': {
-        'name': 'Defiance Daily Target 2X Long AMD ETF',
-        'category': 'Leveraged',
-        'url': 'https://www.defianceetfs.com/damd/'
-    },
-
-    # Leveraged + Income (7)
-    'MST': {
-        'name': 'Defiance Daily Target 1.75X Long MSTR ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/mst/'
-    },
-    'HIMY': {
-        'name': 'Defiance Daily Target 1.75X Short MSTR ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/himy/'
-    },
-    'SMCC': {
-        'name': 'Defiance Daily Target 1.75X Long SMCI ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/smcc/'
-    },
-    'AMDU': {
-        'name': 'Defiance Daily Target 1.75X Long AMD ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/amdu/'
-    },
-    'PLT': {
-        'name': 'Defiance Daily Target 1.75X Long PLTR ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/plt/'
-    },
-    'HOOI': {
-        'name': 'Defiance Daily Target 1.75X Long HOOD ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/hooi/'
-    },
-    'ETHI': {
-        'name': 'Defiance Daily Target 1.75X Long COIN ETF',
-        'category': 'Leveraged + Income',
-        'url': 'https://www.defianceetfs.com/ethi/'
-    },
-
-    # Income (8)
-    'QQQY': {
-        'name': 'Defiance Nasdaq 100 Enhanced Options Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/qqqy/'
-    },
-    'IWMY': {
-        'name': 'Defiance Russell 2000 Enhanced Options Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/iwmy/'
-    },
-    'SPYT': {
-        'name': 'Defiance S&P 500 Enhanced Options Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/spyt/'
-    },
-    'WDTE': {
-        'name': 'Defiance 0DTE ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/wdte/'
-    },
-    'USOY': {
-        'name': 'Defiance Ultra Short-Term Fixed Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/usoy/'
-    },
-    'QQQT': {
-        'name': 'Defiance Nasdaq 100 0DTE Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/qqqt/'
-    },
-    'GLDY': {
-        'name': 'Defiance Gold Enhanced Options Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/gldy/'
-    },
-    'QLDY': {
-        'name': 'Defiance QQQ Enhanced Options Income ETF',
-        'category': 'Income',
-        'url': 'https://www.defianceetfs.com/qldy/'
+    'TLTI': {
+        'name': 'NEOS Enhanced Income 20+ Year Treasury ETF',
+        'url': 'https://neosfunds.com/tlti/'
     }
 }
 
 
-class DefianceScraper:
-    """Scraper for Defiance ETF data"""
+class NEOSScraper:
+    """Scraper for NEOS ETF data"""
 
-    def __init__(self, ticker: str, fund_name: str, url: str, category: str = None):
+    def __init__(self, ticker: str, fund_name: str, url: str):
         """
         Initialize the scraper
 
         Args:
             ticker: ETF ticker symbol
             fund_name: Full fund name
-            url: Defiance ETF page URL
-            category: ETF category (Thematic, Leveraged, etc.)
+            url: NEOS ETF page URL
         """
         self.ticker = ticker
         self.fund_name = fund_name
         self.url = url
-        self.category = category
 
     def scrape_data(self) -> Optional[Dict[str, Any]]:
         """
@@ -425,8 +168,9 @@ class DefianceScraper:
                 'scraped_at': datetime.now().isoformat(),
                 'expense_ratio': self._extract_expense_ratio(soup),
                 'inception_date': self._extract_inception_date(soup),
+                'net_assets': self._extract_net_assets(soup),
+                'shares_outstanding': self._extract_shares_outstanding(soup),
                 'distribution_rate': self._extract_distribution_rate(soup),
-                'distribution_frequency': self._extract_distribution_frequency(soup),
                 'sec_yield_30day': self._extract_sec_yield(soup),
                 'nav': self._extract_nav(soup),
                 'market_price': self._extract_market_price(soup),
@@ -551,21 +295,19 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted expense ratio: {validated}")
                                 return validated
 
-            # Also search in .fund-table-row divs (Defiance specific)
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        validated = self._validate_numeric_field(value, 'expense_ratio')
-                        if validated:
-                            logger.info(f"✅ Extracted expense ratio: {validated}")
-                            return validated
+            # Also try text search
+            for text_elem in soup.find_all(string=True):
+                text = text_elem.strip().lower()
+                for keyword in keywords:
+                    if keyword in text:
+                        parent = text_elem.parent
+                        if parent:
+                            siblings = [s.get_text(strip=True) for s in parent.find_next_siblings()[:3]]
+                            combined_text = ' '.join([text] + siblings)
+                            match = re.search(r'(\d+\.\d+%)', combined_text)
+                            if match:
+                                logger.info(f"✅ Extracted expense ratio: {match.group(1)}")
+                                return match.group(1)
 
             logger.warning("⚠️  No expense ratio found")
             return None
@@ -596,22 +338,6 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted inception date: {normalized}")
                                 return normalized
 
-            # Also search in .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        normalized = self._normalize_date(value)
-                        if normalized:
-                            logger.info(f"✅ Extracted inception date: {normalized}")
-                            return normalized
-
             logger.warning("⚠️  No inception date found")
             return None
 
@@ -619,12 +345,65 @@ class DefianceScraper:
             logger.error(f"❌ Error extracting inception date: {e}")
             return None
 
+    def _extract_net_assets(self, soup: BeautifulSoup) -> Optional[str]:
+        """Extract net assets"""
+        try:
+            keywords = ['net assets', 'assets under management', 'aum', 'total assets', 'fund assets']
+
+            tables = soup.find_all('table')
+            for table in tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 2:
+                        label = cells[0].get_text(strip=True).lower()
+                        value = cells[1].get_text(strip=True)
+
+                        if any(keyword in label for keyword in keywords):
+                            validated = self._validate_numeric_field(value, 'net_assets')
+                            if validated:
+                                logger.info(f"✅ Extracted net assets: {validated}")
+                                return validated
+
+            logger.warning("⚠️  No net assets found")
+            return None
+
+        except Exception as e:
+            logger.error(f"❌ Error extracting net assets: {e}")
+            return None
+
+    def _extract_shares_outstanding(self, soup: BeautifulSoup) -> Optional[str]:
+        """Extract shares outstanding"""
+        try:
+            keywords = ['shares outstanding', 'outstanding shares', 'total shares']
+
+            tables = soup.find_all('table')
+            for table in tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 2:
+                        label = cells[0].get_text(strip=True).lower()
+                        value = cells[1].get_text(strip=True)
+
+                        if any(keyword in label for keyword in keywords):
+                            # Must be pure number or number with commas
+                            if re.match(r'^\d+(?:,\d{3})*$', value):
+                                logger.info(f"✅ Extracted shares outstanding: {value}")
+                                return value
+
+            logger.warning("⚠️  No shares outstanding found")
+            return None
+
+        except Exception as e:
+            logger.error(f"❌ Error extracting shares outstanding: {e}")
+            return None
+
     def _extract_distribution_rate(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract distribution rate"""
         try:
-            keywords = ['distribution rate', '30-day distribution rate', 'distribution yield', 'current distribution']
+            keywords = ['distribution rate', '30-day distribution rate', 'distribution yield']
 
-            # Search in tables
             tables = soup.find_all('table')
             for table in tables:
                 rows = table.find_all('tr')
@@ -640,34 +419,6 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted distribution rate: {validated}")
                                 return validated
 
-            # Also search in .fund-table-row divs and card-body
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        validated = self._validate_numeric_field(value, 'distribution_rate')
-                        if validated:
-                            logger.info(f"✅ Extracted distribution rate: {validated}")
-                            return validated
-
-            # Check card-body area (hero section)
-            card_bodies = soup.find_all(class_='card-body')
-            for card in card_bodies:
-                text = card.get_text()
-                for keyword in keywords:
-                    if keyword in text.lower():
-                        # Try to find percentage value near keyword
-                        match = re.search(r'(\d+\.?\d*%)', text)
-                        if match:
-                            logger.info(f"✅ Extracted distribution rate: {match.group(1)}")
-                            return match.group(1)
-
             logger.warning("⚠️  No distribution rate found")
             return None
 
@@ -675,60 +426,11 @@ class DefianceScraper:
             logger.error(f"❌ Error extracting distribution rate: {e}")
             return None
 
-    def _extract_distribution_frequency(self, soup: BeautifulSoup) -> Optional[str]:
-        """Extract distribution frequency"""
-        try:
-            keywords = ['distribution frequency', 'dividend frequency', 'frequency', 'distribution schedule']
-
-            # Search in tables
-            tables = soup.find_all('table')
-            for table in tables:
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all(['td', 'th'])
-                    if len(cells) >= 2:
-                        label = cells[0].get_text(strip=True).lower()
-                        value = cells[1].get_text(strip=True)
-
-                        if any(keyword in label for keyword in keywords):
-                            logger.info(f"✅ Extracted distribution frequency: {value}")
-                            return value
-
-            # Also search in .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        logger.info(f"✅ Extracted distribution frequency: {value}")
-                        return value
-
-            # Check for common frequency terms in text
-            page_text = soup.get_text().lower()
-            frequency_terms = ['weekly', 'monthly', 'quarterly', 'annually', 'daily']
-            for term in frequency_terms:
-                if f'{term} distribution' in page_text or f'distributed {term}' in page_text:
-                    logger.info(f"✅ Extracted distribution frequency: {term.capitalize()}")
-                    return term.capitalize()
-
-            logger.warning("⚠️  No distribution frequency found")
-            return None
-
-        except Exception as e:
-            logger.error(f"❌ Error extracting distribution frequency: {e}")
-            return None
-
     def _extract_sec_yield(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract 30-day SEC yield"""
         try:
-            keywords = ['30-day sec yield', 'sec yield', '30 day sec yield', 'sec 30-day', '30-day sec']
+            keywords = ['30-day sec yield', 'sec yield', '30 day sec yield', 'sec 30-day']
 
-            # Search in tables
             tables = soup.find_all('table')
             for table in tables:
                 rows = table.find_all('tr')
@@ -744,22 +446,6 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted 30-day SEC yield: {validated}")
                                 return validated
 
-            # Also search in .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        validated = self._validate_numeric_field(value, 'sec_yield_30day')
-                        if validated:
-                            logger.info(f"✅ Extracted 30-day SEC yield: {validated}")
-                            return validated
-
             logger.warning("⚠️  No 30-day SEC yield found")
             return None
 
@@ -772,7 +458,6 @@ class DefianceScraper:
         try:
             keywords = ['nav', 'net asset value', 'net asset val']
 
-            # Search in tables
             tables = soup.find_all('table')
             for table in tables:
                 rows = table.find_all('tr')
@@ -788,22 +473,6 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted NAV: {validated}")
                                 return validated
 
-            # Also search in .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword == label for keyword in keywords):
-                        validated = self._validate_numeric_field(value, 'nav')
-                        if validated:
-                            logger.info(f"✅ Extracted NAV: {validated}")
-                            return validated
-
             logger.warning("⚠️  No NAV found")
             return None
 
@@ -814,9 +483,8 @@ class DefianceScraper:
     def _extract_market_price(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract market price"""
         try:
-            keywords = ['market price', 'closing price', 'price', 'last price']
+            keywords = ['market price', 'closing price', 'price']
 
-            # Search in tables
             tables = soup.find_all('table')
             for table in tables:
                 rows = table.find_all('tr')
@@ -832,22 +500,6 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted market price: {validated}")
                                 return validated
 
-            # Also search in .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        validated = self._validate_numeric_field(value, 'market_price')
-                        if validated:
-                            logger.info(f"✅ Extracted market price: {validated}")
-                            return validated
-
             logger.warning("⚠️  No market price found")
             return None
 
@@ -858,9 +510,8 @@ class DefianceScraper:
     def _extract_premium_discount(self, soup: BeautifulSoup) -> Optional[str]:
         """Extract premium/discount to NAV"""
         try:
-            keywords = ['premium/discount', 'premium discount', 'premium / discount', 'prem/disc']
+            keywords = ['premium/discount', 'premium discount', 'premium / discount']
 
-            # Search in tables
             tables = soup.find_all('table')
             for table in tables:
                 rows = table.find_all('tr')
@@ -876,22 +527,6 @@ class DefianceScraper:
                                 logger.info(f"✅ Extracted premium/discount: {validated}")
                                 return validated
 
-            # Also search in .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
-
-                if title_elem and value_elem:
-                    label = title_elem.get_text(strip=True).lower()
-                    value = value_elem.get_text(strip=True)
-
-                    if any(keyword in label for keyword in keywords):
-                        validated = self._validate_numeric_field(value, 'premium_discount')
-                        if validated:
-                            logger.info(f"✅ Extracted premium/discount: {validated}")
-                            return validated
-
             logger.warning("⚠️  No premium/discount found")
             return None
 
@@ -904,29 +539,26 @@ class DefianceScraper:
         try:
             fund_details = {}
 
-            # Check all tables for useful info
-            tables = soup.find_all('table')
-            for table in tables:
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all(['td', 'th'])
-                    if len(cells) == 2:
-                        key = cells[0].get_text(strip=True)
-                        value = cells[1].get_text(strip=True)
-                        if key and value:
-                            fund_details[key] = value
+            # Look for fund details table or list
+            detail_keywords = ['fund details', 'fund information', 'details', 'fund facts', 'characteristics']
 
-            # Also check .fund-table-row divs
-            fund_rows = soup.find_all(class_='fund-table-row')
-            for row in fund_rows:
-                title_elem = row.find(class_='row-title')
-                value_elem = row.find(class_='row-value')
+            # Search in headings
+            for keyword in detail_keywords:
+                headers = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5'])
 
-                if title_elem and value_elem:
-                    key = title_elem.get_text(strip=True)
-                    value = value_elem.get_text(strip=True)
-                    if key and value:
-                        fund_details[key] = value
+                for header in headers:
+                    if keyword in header.get_text(strip=True).lower():
+                        # Find next table or list
+                        next_table = header.find_next('table')
+                        if next_table:
+                            rows = next_table.find_all('tr')
+                            for row in rows:
+                                cells = row.find_all(['td', 'th'])
+                                if len(cells) >= 2:
+                                    key = cells[0].get_text(strip=True)
+                                    value = cells[1].get_text(strip=True)
+                                    if key and value:
+                                        fund_details[key] = value
 
             # Also look for dl/dt/dd structure
             definition_lists = soup.find_all('dl')
@@ -938,6 +570,18 @@ class DefianceScraper:
                     if definition:
                         value = definition.get_text(strip=True)
                         fund_details[key] = value
+
+            # Also check all tables for useful info
+            tables = soup.find_all('table')
+            for table in tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) == 2:
+                        key = cells[0].get_text(strip=True)
+                        value = cells[1].get_text(strip=True)
+                        if key and value:
+                            fund_details[key] = value
 
             if fund_details:
                 logger.info(f"✅ Extracted fund details: {len(fund_details)} fields")
@@ -998,23 +642,47 @@ class DefianceScraper:
             return None
 
     def _extract_distributions(self, soup: BeautifulSoup) -> Optional[List[Dict[str, str]]]:
-        """Extract distributions data"""
+        """
+        Extract distributions data
+
+        Note: NEOS pages have TWO tables:
+        1. First table: "Distribution Information" summary box (we want to SKIP this)
+        2. Second table: Actual distributions with dates and amounts (this is what we want)
+
+        We look for tables with specific date-related columns to ensure we get the right one.
+        """
         try:
             distributions = []
 
-            # Look for distributions table (id="table-distribution" or class="distribution-table")
-            dist_table = soup.find('table', id='table-distribution')
-            if not dist_table:
-                dist_table = soup.find('table', class_=re.compile(r'distribution'))
+            # Look for distributions table
+            tables = soup.find_all('table')
 
-            if dist_table:
-                headers = dist_table.find_all('th')
-                if headers:
+            logger.info(f"📊 Found {len(tables)} total tables on page")
+
+            for idx, table in enumerate(tables):
+                headers = table.find_all('th')
+                if not headers:
+                    continue
+
+                header_text = ' '.join([h.get_text(strip=True).lower() for h in headers])
+                logger.info(f"   Table {idx + 1} headers: {header_text[:100]}")
+
+                # Skip the "Distribution Information" summary table
+                # This table has headers like "Distribution Information", "Distribution Frequency", etc.
+                if 'distribution information' in header_text or 'distribution frequency' in header_text:
+                    logger.info(f"   ⏭️  Skipping Distribution Information summary table")
+                    continue
+
+                # Look for the actual distributions table
+                # This table has columns: Declaration Date, Ex-Div Date, Record Date, Payable Date, Amount
+                if all(keyword in header_text for keyword in ['declaration date', 'ex-div date', 'record date', 'payable date', 'amount']):
+                    logger.info(f"   ✅ Found distributions table with all required columns")
+
                     # Extract headers
                     header_cols = [h.get_text(strip=True) for h in headers]
 
                     # Extract rows
-                    rows = dist_table.find_all('tr')[1:]  # Skip header row
+                    rows = table.find_all('tr')[1:]  # Skip header row
 
                     for row in rows:
                         cells = row.find_all(['td', 'th'])
@@ -1024,70 +692,48 @@ class DefianceScraper:
                                 if i < len(header_cols):
                                     distribution_data[header_cols[i]] = cell.get_text(strip=True)
 
-                            if distribution_data:
+                            # Only add if we have actual data (not empty)
+                            if distribution_data and any(v and v.strip() for v in distribution_data.values()):
                                 distributions.append(distribution_data)
 
-            # Fallback: Look for any table with distribution keywords
-            if not distributions:
-                tables = soup.find_all('table')
-                for table in tables:
-                    headers = table.find_all('th')
-                    if not headers:
-                        continue
-
-                    header_text = ' '.join([h.get_text(strip=True).lower() for h in headers])
-
-                    # Look for distribution-related keywords
-                    if any(keyword in header_text for keyword in ['distribution', 'dividend', 'payment', 'ex-date', 'record date', 'payable']):
-                        # Extract headers
-                        header_cols = [h.get_text(strip=True) for h in headers]
-
-                        # Extract rows
-                        rows = table.find_all('tr')[1:]  # Skip header row
-
-                        for row in rows:
-                            cells = row.find_all(['td', 'th'])
-                            if len(cells) >= len(header_cols):
-                                distribution_data = {}
-                                for i, cell in enumerate(cells):
-                                    if i < len(header_cols):
-                                        distribution_data[header_cols[i]] = cell.get_text(strip=True)
-
-                                if distribution_data:
-                                    distributions.append(distribution_data)
-
-                        if distributions:
-                            break
+                    if distributions:
+                        break
 
             if distributions:
                 logger.info(f"✅ Extracted distributions: {len(distributions)} records")
                 return distributions
 
             logger.warning("⚠️  No distributions found")
-            return None
+            return []  # Return empty list instead of None
 
         except Exception as e:
             logger.error(f"❌ Error extracting distributions: {e}")
-            return None
+            import traceback
+            traceback.print_exc()
+            return []  # Return empty list instead of None
 
     def _extract_holdings(self, soup: BeautifulSoup) -> Optional[List[Dict[str, str]]]:
         """Extract fund holdings (top 10)"""
         try:
             holdings = []
 
-            # Look for holdings table (id="table-top-holdings")
-            holdings_table = soup.find('table', id='table-top-holdings')
-            if not holdings_table:
-                holdings_table = soup.find('table', class_=re.compile(r'holding'))
+            # Look for holdings table
+            tables = soup.find_all('table')
 
-            if holdings_table:
-                headers = holdings_table.find_all('th')
-                if headers:
+            for table in tables:
+                headers = table.find_all('th')
+                if not headers:
+                    continue
+
+                header_text = ' '.join([h.get_text(strip=True).lower() for h in headers])
+
+                # Look for holdings-related keywords
+                if any(keyword in header_text for keyword in ['holding', 'position', 'security', 'ticker', 'allocation', 'weight', 'name', 'shares']):
                     # Extract headers
                     header_cols = [h.get_text(strip=True) for h in headers]
 
                     # Extract rows (limit to top 10)
-                    rows = holdings_table.find_all('tr')[1:]  # Skip header row
+                    rows = table.find_all('tr')[1:]  # Skip header row
 
                     for i, row in enumerate(rows[:10]):
                         cells = row.find_all(['td', 'th'])
@@ -1100,37 +746,8 @@ class DefianceScraper:
                             if holding_data:
                                 holdings.append(holding_data)
 
-            # Fallback: Look for any table with holdings keywords
-            if not holdings:
-                tables = soup.find_all('table')
-                for table in tables:
-                    headers = table.find_all('th')
-                    if not headers:
-                        continue
-
-                    header_text = ' '.join([h.get_text(strip=True).lower() for h in headers])
-
-                    # Look for holdings-related keywords
-                    if any(keyword in header_text for keyword in ['holding', 'position', 'security', 'ticker', 'allocation', 'weight', 'name', 'shares']):
-                        # Extract headers
-                        header_cols = [h.get_text(strip=True) for h in headers]
-
-                        # Extract rows (limit to top 10)
-                        rows = table.find_all('tr')[1:]  # Skip header row
-
-                        for i, row in enumerate(rows[:10]):
-                            cells = row.find_all(['td', 'th'])
-                            if len(cells) >= 2:
-                                holding_data = {}
-                                for j, cell in enumerate(cells):
-                                    if j < len(header_cols):
-                                        holding_data[header_cols[j]] = cell.get_text(strip=True)
-
-                                if holding_data:
-                                    holdings.append(holding_data)
-
-                        if holdings:
-                            break
+                    if holdings:
+                        break
 
             if holdings:
                 logger.info(f"✅ Extracted holdings: {len(holdings)} positions")
@@ -1164,8 +781,9 @@ class DefianceScraper:
                 'scraped_at': data['scraped_at'],
                 'expense_ratio': data.get('expense_ratio'),
                 'inception_date': data.get('inception_date'),
+                'net_assets': data.get('net_assets'),
+                'shares_outstanding': data.get('shares_outstanding'),
                 'distribution_rate': data.get('distribution_rate'),
-                'distribution_frequency': data.get('distribution_frequency'),
                 'sec_yield_30day': data.get('sec_yield_30day'),
                 'nav': data.get('nav'),
                 'market_price': data.get('market_price'),
@@ -1177,7 +795,7 @@ class DefianceScraper:
             }
 
             # Upsert to database
-            result = supabase_upsert('raw_etfs_defiance', [record])
+            result = supabase_upsert('raw_etfs_neos', [record])
 
             if result:
                 logger.info(f"✅ Saved {data['ticker']} data to database")
@@ -1195,7 +813,7 @@ class DefianceScraper:
 
 def scrape_single_etf(ticker: str) -> bool:
     """
-    Scrape a single Defiance ETF
+    Scrape a single NEOS ETF
 
     Args:
         ticker: ETF ticker symbol
@@ -1203,18 +821,13 @@ def scrape_single_etf(ticker: str) -> bool:
     Returns:
         True if successful, False otherwise
     """
-    if ticker not in DEFIANCE_ETFS:
+    if ticker not in NEOS_ETFS:
         logger.error(f"❌ Unknown ticker: {ticker}")
-        logger.info(f"Available tickers: {', '.join(DEFIANCE_ETFS.keys())}")
+        logger.info(f"Available tickers: {', '.join(NEOS_ETFS.keys())}")
         return False
 
-    etf_info = DEFIANCE_ETFS[ticker]
-    scraper = DefianceScraper(
-        ticker,
-        etf_info['name'],
-        etf_info['url'],
-        etf_info.get('category')
-    )
+    etf_info = NEOS_ETFS[ticker]
+    scraper = NEOSScraper(ticker, etf_info['name'], etf_info['url'])
 
     # Scrape data
     logger.info(f"🚀 Starting scrape for {ticker}...")
@@ -1230,8 +843,9 @@ def scrape_single_etf(ticker: str) -> bool:
     print(f"  • Fund Name: {data['fund_name']}")
     print(f"  • Expense Ratio: {data.get('expense_ratio') or '❌'}")
     print(f"  • Inception Date: {data.get('inception_date') or '❌'}")
+    print(f"  • Net Assets: {data.get('net_assets') or '❌'}")
+    print(f"  • Shares Outstanding: {data.get('shares_outstanding') or '❌'}")
     print(f"  • Distribution Rate: {data.get('distribution_rate') or '❌'}")
-    print(f"  • Distribution Frequency: {data.get('distribution_frequency') or '❌'}")
     print(f"  • 30-Day SEC Yield: {data.get('sec_yield_30day') or '❌'}")
     print(f"  • NAV: {data.get('nav') or '❌'}")
     print(f"  • Market Price: {data.get('market_price') or '❌'}")
@@ -1269,7 +883,7 @@ def validate_etf_urls() -> Dict[str, bool]:
     validation_results = {}
     invalid_tickers = []
 
-    for ticker, info in DEFIANCE_ETFS.items():
+    for ticker, info in NEOS_ETFS.items():
         try:
             response = requests.head(info['url'], timeout=10, allow_redirects=True)
             is_valid = response.status_code == 200
@@ -1294,7 +908,7 @@ def validate_etf_urls() -> Dict[str, bool]:
         print("   These tickers will be skipped during scraping")
         print()
     else:
-        print(f"✅ All {len(DEFIANCE_ETFS)} ETF URLs validated successfully!")
+        print(f"✅ All {len(NEOS_ETFS)} ETF URLs validated successfully!")
         print()
 
     return validation_results
@@ -1302,7 +916,7 @@ def validate_etf_urls() -> Dict[str, bool]:
 
 def scrape_all_etfs(delay: int = 5, skip_validation: bool = False) -> Dict[str, bool]:
     """
-    Scrape all Defiance ETFs
+    Scrape all NEOS ETFs
 
     Args:
         delay: Seconds to wait between requests (default: 5)
@@ -1312,19 +926,19 @@ def scrape_all_etfs(delay: int = 5, skip_validation: bool = False) -> Dict[str, 
         Dictionary mapping ticker to success status
     """
     # Validate URLs first unless skipped
-    valid_tickers = list(DEFIANCE_ETFS.keys())
+    valid_tickers = list(NEOS_ETFS.keys())
     if not skip_validation:
         validation_results = validate_etf_urls()
         valid_tickers = [ticker for ticker, is_valid in validation_results.items() if is_valid]
 
-        if len(valid_tickers) < len(DEFIANCE_ETFS):
-            invalid_count = len(DEFIANCE_ETFS) - len(valid_tickers)
+        if len(valid_tickers) < len(NEOS_ETFS):
+            invalid_count = len(NEOS_ETFS) - len(valid_tickers)
             print(f"⏭️  Skipping {invalid_count} invalid ticker(s)")
             print()
 
     results = {}
 
-    print(f"🚀 Scraping {len(valid_tickers)} Defiance ETFs...")
+    print(f"🚀 Scraping {len(valid_tickers)} NEOS ETFs...")
     print(f"⏱️  Delay between requests: {delay} seconds")
     print()
 
@@ -1352,9 +966,9 @@ def scrape_all_etfs(delay: int = 5, skip_validation: bool = False) -> Dict[str, 
 
 def main():
     """Main execution function"""
-    parser = argparse.ArgumentParser(description='Scrape Defiance ETF data')
-    parser.add_argument('--ticker', '-t', type=str, help='Specific ticker to scrape (e.g., QQQY)')
-    parser.add_argument('--all', '-a', action='store_true', help='Scrape all Defiance ETFs')
+    parser = argparse.ArgumentParser(description='Scrape NEOS ETF data')
+    parser.add_argument('--ticker', '-t', type=str, help='Specific ticker to scrape (e.g., SPYI)')
+    parser.add_argument('--all', '-a', action='store_true', help='Scrape all NEOS ETFs')
     parser.add_argument('--list', '-l', action='store_true', help='List available tickers')
     parser.add_argument('--delay', '-d', type=int, default=5,
                        help='Delay in seconds between requests when scraping all (default: 5)')
@@ -1364,30 +978,17 @@ def main():
     args = parser.parse_args()
 
     print("=" * 80)
-    print("🎯 Defiance ETF Scraper")
+    print("🎯 NEOS ETF Scraper")
     print("=" * 80)
     print()
 
     # List available tickers
     if args.list:
-        print(f"Available Defiance ETFs ({len(DEFIANCE_ETFS)}):")
+        print(f"Available NEOS ETFs ({len(NEOS_ETFS)}):")
         print()
-
-        # Group by category
-        categories = {}
-        for ticker, info in DEFIANCE_ETFS.items():
-            category = info.get('category', 'Other')
-            if category not in categories:
-                categories[category] = []
-            categories[category].append((ticker, info['name']))
-
-        for category in ['Thematic', 'Leveraged', 'Leveraged + Income', 'Income', 'Other']:
-            if category in categories:
-                print(f"{category} ({len(categories[category])}):")
-                for ticker, name in sorted(categories[category]):
-                    print(f"  {ticker:8s} - {name}")
-                print()
-
+        for ticker, info in NEOS_ETFS.items():
+            print(f"  {ticker:8s} - {info['name']}")
+        print()
         print("=" * 80)
         return 0
 
