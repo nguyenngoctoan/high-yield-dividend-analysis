@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
+import UsageAnalytics from '@/components/UsageAnalytics';
 
 interface APIKey {
   id: string;
@@ -263,6 +264,9 @@ export default function APIKeysPage() {
               />
             </div>
           )}
+
+          {/* Usage Analytics */}
+          <UsageAnalytics />
 
           {/* Loading State */}
           {loading && (

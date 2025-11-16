@@ -123,7 +123,8 @@ async def get_dividend_calendar(
             if row.get('frequency'):
                 try:
                     frequency = DividendFrequency(row['frequency'].lower())
-                except:
+                except (ValueError, KeyError):
+                    # Invalid frequency value, leave as None
                     pass
 
             # Convert ex_date string to date object
@@ -267,7 +268,8 @@ async def get_stock_dividends(
         if stock.get('dividend_frequency'):
             try:
                 frequency = DividendFrequency(stock['dividend_frequency'].lower())
-            except:
+            except (ValueError, KeyError):
+                # Invalid frequency value, leave as None
                 pass
 
         current_info = DividendInfo(

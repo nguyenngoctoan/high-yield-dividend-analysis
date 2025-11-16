@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev -p 3000",
+    "dev:low-memory": "NODE_OPTIONS='--max-old-space-size=2048' next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -14,6 +15,7 @@
     "next": "14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "recharts": "^3.4.1",
     "shiki": "^1.0.0"
   },
   "devDependencies": {

@@ -29,7 +29,7 @@ def decode_cursor(cursor: str) -> dict:
     """Decode pagination cursor."""
     try:
         return json.loads(base64.b64decode(cursor).decode())
-    except:
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as e:
         raise HTTPException(status_code=400, detail="Invalid cursor")
 
 
@@ -206,7 +206,8 @@ async def get_stock(
             if row.get('dividend_frequency'):
                 try:
                     frequency = DividendFrequency(row['dividend_frequency'].lower())
-                except:
+                except (ValueError, KeyError):
+                    # Invalid frequency value, leave as None
                     pass
 
             dividend_info = DividendInfo(
@@ -357,7 +358,8 @@ async def get_dividend_metrics(
         if row.get('dividend_frequency'):
             try:
                 frequency = DividendFrequency(row['dividend_frequency'].lower())
-            except:
+            except (ValueError, KeyError):
+                # Invalid frequency value, leave as None
                 pass
 
         return DividendMetrics(
