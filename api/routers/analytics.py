@@ -4,13 +4,14 @@ Analytics Router
 Portfolio analytics and dividend projections.
 """
 
-from fastapi import APIRouter, HTTPException
-from typing import List
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Dict, Any
 
 from api.models.schemas import (
     PortfolioAnalysisRequest, PortfolioAnalysisResponse,
     PortfolioProjection, PortfolioPositionDetail
 )
+from api.dependencies import require_api_key
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -18,7 +19,8 @@ router = APIRouter()
 
 @router.post("/analytics/portfolio", response_model=PortfolioAnalysisResponse, summary="Analyze portfolio")
 async def analyze_portfolio(
-    request: PortfolioAnalysisRequest
+    request: PortfolioAnalysisRequest,
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> PortfolioAnalysisResponse:
     """
     Calculate portfolio dividend income projections.

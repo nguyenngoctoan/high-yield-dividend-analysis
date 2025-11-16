@@ -4,10 +4,11 @@ Screeners Router
 Pre-built stock screeners for dividend investors.
 """
 
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Query, Depends
+from typing import Optional, Dict, Any
 
 from api.models.schemas import ScreenerResponse, ScreenerResult, SortOrder
+from api.dependencies import require_api_key
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -24,7 +25,8 @@ async def high_yield_screener(
     max_payout_ratio: Optional[float] = Query(None, ge=0, le=100),
     limit: int = Query(100, ge=1, le=1000, description="Results limit"),
     sort: str = Query("yield", description="Sort field: yield, market_cap"),
-    order: SortOrder = Query(SortOrder.DESC, description="Sort order")
+    order: SortOrder = Query(SortOrder.DESC, description="Sort order"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ScreenerResponse:
     """
     Pre-built screener for high-yield dividend stocks.
@@ -118,7 +120,8 @@ async def high_yield_screener(
 @router.get("/screeners/monthly-payers", response_model=ScreenerResponse, summary="Monthly dividend payers")
 async def monthly_payers_screener(
     min_yield: float = Query(0.0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ScreenerResponse:
     """
     Screener for stocks/ETFs that pay monthly dividends.
@@ -175,7 +178,8 @@ async def monthly_payers_screener(
 @router.get("/screeners/dividend-aristocrats", response_model=ScreenerResponse, summary="Dividend Aristocrats screener")
 async def dividend_aristocrats_screener(
     min_yield: float = Query(0, ge=0, description="Minimum yield %"),
-    limit: int = Query(100, ge=1, le=1000, description="Results limit")
+    limit: int = Query(100, ge=1, le=1000, description="Results limit"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ScreenerResponse:
     """
     Find Dividend Aristocrats - stocks with 25+ years of consecutive dividend increases.
@@ -261,7 +265,8 @@ async def dividend_aristocrats_screener(
 @router.get("/screeners/dividend-kings", response_model=ScreenerResponse, summary="Dividend Kings screener")
 async def dividend_kings_screener(
     min_yield: float = Query(0, ge=0, description="Minimum yield %"),
-    limit: int = Query(50, ge=1, le=500, description="Results limit")
+    limit: int = Query(50, ge=1, le=500, description="Results limit"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ScreenerResponse:
     """
     Find Dividend Kings - elite stocks with 50+ years of consecutive dividend increases.
@@ -348,7 +353,8 @@ async def dividend_kings_screener(
 async def high_growth_dividends_screener(
     min_growth: float = Query(10.0, ge=0, description="Minimum 5-year growth rate %"),
     min_yield: float = Query(2.0, ge=0, description="Minimum current yield %"),
-    limit: int = Query(100, ge=1, le=1000, description="Results limit")
+    limit: int = Query(100, ge=1, le=1000, description="Results limit"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ScreenerResponse:
     """
     Find dividend growth stocks with strong 5-year dividend growth rates.

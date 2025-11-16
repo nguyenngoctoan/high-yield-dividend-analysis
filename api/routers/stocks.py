@@ -4,8 +4,8 @@ Stocks Router
 Endpoints for stock and ETF information.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Path
-from typing import Optional, List
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
+from typing import Optional, List, Dict, Any
 import base64
 import json
 
@@ -15,6 +15,7 @@ from api.models.schemas import (
     create_stock_id, ErrorResponse, Fundamentals, DividendMetrics,
     StockSplit, SplitHistoryResponse
 )
+from api.dependencies import require_api_key
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -42,7 +43,8 @@ async def list_stocks(
     max_yield: Optional[float] = Query(None, ge=0, description="Maximum dividend yield %"),
     sector: Optional[str] = Query(None, description="Filter by sector"),
     limit: int = Query(100, ge=1, le=1000, description="Results per page"),
-    cursor: Optional[str] = Query(None, description="Pagination cursor")
+    cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> StockListResponse:
     """
     List all available stocks with optional filtering.

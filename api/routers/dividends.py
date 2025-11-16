@@ -4,8 +4,8 @@ Dividends Router
 Endpoints for dividend calendar and history.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Path
-from typing import Optional, List
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
+from typing import Optional, List, Dict, Any
 from datetime import date, datetime
 
 from api.models.schemas import (
@@ -14,6 +14,7 @@ from api.models.schemas import (
     DividendEventType, DividendFrequency,
     create_dividend_event_id, create_dividend_payment_id
 )
+from api.dependencies import require_api_key
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -28,7 +29,8 @@ async def get_dividend_calendar(
     min_yield: Optional[float] = Query(None, ge=0, description="Minimum yield %"),
     event_type: Optional[DividendEventType] = Query(None, description="Event type filter"),
     limit: int = Query(100, ge=1, le=5000, description="Max results (default 100, max 5000)"),
-    sort: str = Query("asc", description="Sort order: asc (earliest first), desc (latest first)")
+    sort: str = Query("asc", description="Sort order: asc (earliest first), desc (latest first)"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> DividendListResponse:
     """
     Get upcoming dividend events (ex-dates, payment dates) with flexible date filtering.
@@ -168,7 +170,8 @@ async def get_dividend_history(
     symbols: str = Query(..., description="Comma-separated symbols (required)"),
     start_date: Optional[date] = Query(None, description="Start date"),
     end_date: Optional[date] = Query(None, description="End date"),
-    limit: int = Query(100, ge=1, le=1000, description="Results per page")
+    limit: int = Query(100, ge=1, le=1000, description="Results per page"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> DividendListResponse:
     """
     Get historical dividend payments across symbols.
@@ -237,7 +240,8 @@ async def get_dividend_history(
 async def get_stock_dividends(
     symbol: str = Path(..., description="Stock symbol"),
     include_future: bool = Query(True, description="Include future scheduled dividends"),
-    years: int = Query(5, ge=1, le=30, description="Years of history")
+    years: int = Query(5, ge=1, le=30, description="Years of history"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> DividendSummary:
     """
     Get complete dividend data for a specific stock.

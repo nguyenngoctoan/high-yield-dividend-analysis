@@ -4,10 +4,11 @@ Search Router
 Search stocks by symbol, company name, or sector.
 """
 
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Query, Depends
+from typing import Optional, Dict, Any
 
 from api.models.schemas import SearchResponse, SearchResult, StockType
+from api.dependencies import require_api_key
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -17,7 +18,8 @@ router = APIRouter()
 async def search_stocks(
     q: str = Query(..., min_length=1, description="Search query"),
     type: Optional[StockType] = Query(None, description="Filter by type"),
-    limit: int = Query(20, ge=1, le=100, description="Results limit")
+    limit: int = Query(20, ge=1, le=100, description="Results limit"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> SearchResponse:
     """
     Search stocks by symbol, company name, or sector.

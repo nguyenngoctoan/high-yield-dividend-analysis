@@ -85,8 +85,14 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             logger.info(f"Rate limiter: path={request.url.path}, has_api_key=False")
 
         if not api_key:
-            # No API key - allow through (will be caught by auth middleware)
-            logger.info("No API key found, allowing request through")
+            # No API key - require authentication on all data endpoints
+            # Only allow through for non-data endpoints (auth, health, etc.)
+            logger.warning(f"No API key found for path: {request.url.path}")
+            if any(excluded in request.url.path for excluded in self.exclude_paths):
+                logger.info(f"Allowing excluded path without API key: {request.url.path}")
+                return await call_next(request)
+            # Authentication will be enforced by require_api_key dependency in the endpoint
+            logger.info(f"No API key on data endpoint - allowing through for endpoint auth check: {request.url.path}")
             return await call_next(request)
 
         rate_limit_info = None

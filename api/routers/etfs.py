@@ -4,14 +4,15 @@ ETFs Router
 ETF holdings and classification endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Path
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 from api.models.schemas import (
     ETFHoldingsResponse, ETFHolding, ETFClassification,
     ETFStrategyDetails, ETFDetails
 )
+from api.dependencies import require_api_key
 from supabase_helpers import get_supabase_client
 
 router = APIRouter()
@@ -19,7 +20,8 @@ router = APIRouter()
 
 @router.get("/etfs/{symbol}", response_model=ETFDetails, summary="Get ETF details")
 async def get_etf_details(
-    symbol: str = Path(..., description="ETF symbol")
+    symbol: str = Path(..., description="ETF symbol"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ETFDetails:
     """
     Get comprehensive ETF information.
@@ -87,7 +89,8 @@ async def get_etf_details(
 async def get_etf_holdings(
     symbol: str = Path(..., description="ETF symbol"),
     limit: int = Query(50, ge=1, le=500, description="Number of holdings"),
-    include_weights: bool = Query(True, description="Include position weights")
+    include_weights: bool = Query(True, description="Include position weights"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ETFHoldingsResponse:
     """
     Get ETF portfolio holdings breakdown.
@@ -174,7 +177,8 @@ async def get_etf_holdings(
 
 @router.get("/etfs/classify/{symbol}", response_model=ETFClassification, summary="Classify ETF strategy")
 async def classify_etf(
-    symbol: str = Path(..., description="ETF symbol")
+    symbol: str = Path(..., description="ETF symbol"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> ETFClassification:
     """
     Identify ETF investment strategy and related stocks.

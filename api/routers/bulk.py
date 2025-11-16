@@ -5,12 +5,13 @@ Endpoints for fetching data for multiple symbols in a single request.
 Reduces API calls by 10-100x compared to individual requests.
 """
 
-from fastapi import APIRouter, HTTPException, Request, Body, Query, status
+from fastapi import APIRouter, HTTPException, Request, Body, Query, status, Depends
 from typing import List, Dict, Optional, Any
 from datetime import datetime, date, timedelta
 import logging
 
 from api.models.schemas import Stock, DividendInfo, ErrorResponse
+from api.dependencies import require_api_key
 from api.middleware.tier_enforcer import TierEnforcer, get_tier_from_request
 from api.config import settings
 from supabase_helpers import get_supabase_client
@@ -29,7 +30,8 @@ logger = logging.getLogger(__name__)
 async def get_stocks_bulk(
     request: Request,
     symbols: List[str] = Body(..., description="List of stock symbols", max_items=1000),
-    expand: Optional[str] = Query(None, description="Comma-separated fields: company,dividends,prices")
+    expand: Optional[str] = Query(None, description="Comma-separated fields: company,dividends,prices"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> Dict[str, Any]:
     """
     Fetch details for multiple stocks in a single request.
@@ -197,7 +199,8 @@ async def get_stocks_bulk(
 async def get_dividends_bulk(
     request: Request,
     symbols: List[str] = Body(..., description="List of stock symbols", max_items=1000),
-    years: Optional[int] = Query(None, ge=1, le=100, description="Years of history (defaults to tier limit)")
+    years: Optional[int] = Query(None, ge=1, le=100, description="Years of history (defaults to tier limit)"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> Dict[str, Any]:
     """
     Fetch dividend history for multiple stocks in a single request.
@@ -327,7 +330,8 @@ async def get_prices_bulk(
     symbols: List[str] = Body(..., description="List of stock symbols", max_items=1000),
     range: Optional[str] = Query('1m', description="Time range: 1d, 5d, 1m, 3m, 6m, ytd, 1y, 2y, 5y, max"),
     from_date: Optional[date] = Query(None, description="Start date (overrides range)"),
-    to_date: Optional[date] = Query(None, description="End date")
+    to_date: Optional[date] = Query(None, description="End date"),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> Dict[str, Any]:
     """
     Fetch price history for multiple stocks in a single request.
@@ -465,7 +469,8 @@ async def get_prices_bulk(
 )
 async def get_latest_prices_bulk(
     request: Request,
-    symbols: List[str] = Body(..., description="List of stock symbols", max_items=1000)
+    symbols: List[str] = Body(..., description="List of stock symbols", max_items=1000),
+    auth: Dict[str, Any] = Depends(require_api_key)
 ) -> Dict[str, Any]:
     """
     Fetch latest price snapshot for multiple stocks in a single request.
