@@ -1,0 +1,156 @@
+# ============================================================================
+# Docker Compose - Railway Production Deployment
+# ============================================================================
+# This configuration is optimized for Railway deployment with:
+# - Nginx reverse proxy for unified routing
+# - Frontend and backend behind single domain
+# - Redis for caching
+# - Production-ready settings
+#
+# Railway will deploy this entire stack as a single service
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Nginx Reverse Proxy - Unified Entry Point
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: divv-nginx
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.railway.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Backend API (FastAPI)
+  # ==========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: divv-api
+    expose:
+      - "8000"
+    environment:
+      # Supabase configuration
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+      # API Keys
+      - FMP_API_KEY=${FMP_API_KEY}
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+
+      # Application settings
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY}
+      - SESSION_SECRET=${SESSION_SECRET:-}
+
+      # OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
+
+      # CORS - MUST be set to specific domains in production
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+
+      # Database
+      - DATABASE_URL=${DATABASE_URL:-}
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Frontend (Next.js)
+  # ==========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: divv-docs
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      # API URL is internal to Docker network
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Redis (Caching & Rate Limiting)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: divv-redis
+    expose:
+      - "6379"
+
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+    networks:
+      - app-network
+
+    restart: unless-stopped
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  app-network:
+    driver: bridge
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  redis-data:
+    driver: local

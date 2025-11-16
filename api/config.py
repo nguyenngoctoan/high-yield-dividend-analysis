@@ -5,11 +5,15 @@ Loads configuration from environment variables with sensible defaults.
 """
 
 import os
+import logging
 from typing import List
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 
 class Settings:
@@ -36,10 +40,54 @@ class Settings:
     GOOGLE_USERINFO_URI: str = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     # JWT and Sessions
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-secret-key-in-production")
-    SESSION_SECRET: str = os.getenv("SESSION_SECRET", "change-this-session-secret-in-production")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    SESSION_SECRET: str = os.getenv("SESSION_SECRET", "")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+    def __init__(self):
+        """Validate configuration on initialization"""
+        # Production security validation
+        if self.is_production:
+            # Validate SECRET_KEY
+            if not self.SECRET_KEY or len(self.SECRET_KEY) < 32:
+                raise ValueError(
+                    "SECRET_KEY must be set and at least 32 characters in production. "
+                    "Generate with: openssl rand -hex 32"
+                )
+            if self.SECRET_KEY == "change-this-secret-key-in-production":
+                raise ValueError("SECRET_KEY cannot use default value in production")
+
+            # Validate SESSION_SECRET
+            if not self.SESSION_SECRET or len(self.SESSION_SECRET) < 32:
+                raise ValueError(
+                    "SESSION_SECRET must be set and at least 32 characters in production. "
+                    "Generate with: openssl rand -hex 32"
+                )
+            if self.SESSION_SECRET == "change-this-session-secret-in-production":
+                raise ValueError("SESSION_SECRET cannot use default value in production")
+
+            # Validate CORS
+            if "*" in self.ALLOWED_ORIGINS:
+                raise ValueError(
+                    "ALLOWED_ORIGINS cannot contain '*' in production. "
+                    "Specify exact origins: https://yourdomain.com"
+                )
+
+        # Use development defaults only in development
+        if not self.SECRET_KEY:
+            if self.is_production:
+                raise ValueError("SECRET_KEY is required")
+            else:
+                self.SECRET_KEY = "development-insecure-secret-key-change-in-production"
+                logger.warning("⚠️  Using insecure default SECRET_KEY for development")
+
+        if not self.SESSION_SECRET:
+            if self.is_production:
+                raise ValueError("SESSION_SECRET is required")
+            else:
+                self.SESSION_SECRET = "development-insecure-session-secret-change-in-production"
+                logger.warning("⚠️  Using insecure default SESSION_SECRET for development")
 
     # CORS
     ALLOWED_ORIGINS: List[str] = os.getenv(
@@ -61,26 +109,6 @@ class Settings:
     def is_development(self) -> bool:
         """Check if running in development environment."""
         return self.ENVIRONMENT == "development"
-
-    def validate(self) -> None:
-        """Validate required configuration values."""
-        errors = []
-
-        if not self.SUPABASE_URL:
-            errors.append("SUPABASE_URL is required")
-        if not self.SUPABASE_KEY:
-            errors.append("SUPABASE_KEY is required")
-        if not self.GOOGLE_CLIENT_ID:
-            errors.append("GOOGLE_CLIENT_ID is required for OAuth")
-        if not self.GOOGLE_CLIENT_SECRET:
-            errors.append("GOOGLE_CLIENT_SECRET is required for OAuth")
-        if self.SECRET_KEY == "change-this-secret-key-in-production" and self.is_production:
-            errors.append("SECRET_KEY must be changed in production")
-        if self.SESSION_SECRET == "change-this-session-secret-in-production" and self.is_production:
-            errors.append("SESSION_SECRET must be changed in production")
-
-        if errors:
-            raise ValueError(f"Configuration errors: {', '.join(errors)}")
 
 
 # Global settings instance

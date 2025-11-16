@@ -1,0 +1,108 @@
+# ============================================================================
+# Backend .dockerignore - Exclude unnecessary files from Docker build
+# ============================================================================
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Logs
+logs/
+*.log
+daily_update*.log
+error.log
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+*.dump
+
+# Documentation build
+docs/_build/
+docs-site/.next/
+docs-site/node_modules/
+docs-site/out/
+
+# Environment files (will be mounted or passed as ENV vars)
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Archives
+archive/
+*.zip
+*.tar.gz
+*.rar
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+docs/
+*.md
+!docs-site/
+
+# Scripts - Now included in Docker for data processing
+# scripts/  # REMOVED - scripts now needed in container
+# bin/      # REMOVED - bin scripts now needed in container
+tests/
+
+# Migration files (already in image)
+migrations/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# OS files
+Thumbs.db
+.DS_Store

@@ -5,7 +5,7 @@ Production-grade FastAPI application for dividend investors.
 Provides comprehensive access to stock prices, dividend data, ETF holdings, and analytics.
 """
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -18,6 +18,8 @@ from typing import Dict, Any
 from api.routers import stocks, dividends, screeners, etfs, analytics, search, api_keys, auth, bulk
 # Note: Rate limiting is now handled by tier_enforcer middleware, not separate rate limiters
 from api.config import settings
+from api.middleware.request_id import RequestIDMiddleware
+from api.middleware.health_rate_limit import health_limiter
 
 # Configure logging
 logging.basicConfig(
@@ -71,6 +73,9 @@ app = FastAPI(
     ]
 )
 
+# Request ID middleware (add first for request tracking)
+app.add_middleware(RequestIDMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -78,7 +83,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-Request-ID"]
 )
 
 # Session middleware (required for OAuth)
@@ -88,7 +93,7 @@ app.add_middleware(
     session_cookie="session",
     max_age=1800,  # 30 minutes
     same_site="lax",
-    https_only=False  # Set to True in production with HTTPS
+    https_only=settings.is_production  # Auto-enable in production
 )
 
 # Gzip compression
@@ -139,12 +144,22 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Health check endpoint
 @app.get("/health", tags=["system"])
-async def health_check() -> Dict[str, Any]:
+async def health_check(request: Request) -> Dict[str, Any]:
     """
-    Health check endpoint for monitoring.
+    Health check endpoint for monitoring with rate limiting.
 
+    Rate limit: 10 requests per minute per IP to prevent abuse.
     Returns API status and database connectivity.
     """
+    # Rate limit health checks (10 per minute per IP - enough for monitoring, prevents abuse)
+    client_ip = request.client.host if request.client else "unknown"
+
+    if not await health_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many health check requests. Limit: 10 per minute per IP."
+        )
+
     try:
         from supabase_helpers import get_supabase_client
 

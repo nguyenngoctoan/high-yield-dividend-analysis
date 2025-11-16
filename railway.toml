@@ -1,0 +1,23 @@
+# ============================================================================
+# Railway Configuration - Monorepo Deployment
+# ============================================================================
+# This file configures how Railway deploys your application.
+# Railway will deploy all services from this single repository.
+# ============================================================================
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.backend"
+
+[deploy]
+numReplicas = 1
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Health check configuration
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+
+[environment]
+# These will be set in Railway dashboard, but defaults here for reference
+ENVIRONMENT = "production"
