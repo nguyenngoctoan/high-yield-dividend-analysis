@@ -2,6 +2,7 @@
 Authentication Endpoints
 
 Provides Google OAuth login, callback, logout, and session management.
+Includes rate limiting on auth endpoints to prevent brute force attacks.
 """
 
 from fastapi import APIRouter, Request, Response, HTTPException, status, Depends, Cookie
@@ -12,6 +13,7 @@ import logging
 
 from api.oauth import oauth, get_or_create_user, create_user_session, get_current_user
 from api.config import settings
+from api.middleware.auth_rate_limiter import auth_rate_limiter
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -24,7 +26,15 @@ async def login(request: Request):
     Initiate Google OAuth login flow.
 
     Redirects the user to Google's OAuth consent screen.
+
+    Rate limited: 5 attempts per minute per IP to prevent brute force.
     """
+    # Get client IP
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Check rate limit
+    auth_rate_limiter.check_login_rate_limit(client_ip)
+
     redirect_uri = settings.GOOGLE_REDIRECT_URI
 
     # Generate authorization URL
@@ -37,7 +47,15 @@ async def auth_callback(request: Request, response: Response):
     Handle OAuth callback from Google.
 
     Exchanges authorization code for access token and creates user session.
+
+    Rate limited: 10 general auth requests per minute per IP.
     """
+    # Get client IP
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Check rate limit
+    auth_rate_limiter.check_general_auth_rate_limit(client_ip)
+
     try:
         # Get access token from Google
         token = await oauth.google.authorize_access_token(request)

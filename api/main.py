@@ -20,6 +20,7 @@ from api.routers import stocks, dividends, screeners, etfs, analytics, search, a
 from api.config import settings
 from api.middleware.request_id import RequestIDMiddleware
 from api.middleware.health_rate_limit import health_limiter
+from api.middleware.audit_logger import AuditLoggingMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -75,6 +76,18 @@ app = FastAPI(
 
 # Request ID middleware (add first for request tracking)
 app.add_middleware(RequestIDMiddleware)
+
+# Audit logging middleware (log all API access)
+app.add_middleware(AuditLoggingMiddleware, exclude_paths=[
+    "/health",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/auth/login",
+    "/auth/callback",
+    "/auth/logout",
+    "/",
+])
 
 # CORS middleware
 app.add_middleware(
