@@ -68,12 +68,24 @@ class SnowballDividendScraper:
         chrome_options.add_argument('--window-size=1920,1080')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36')
 
+        # Set binary location (for Docker container with Chromium)
+        chrome_binary = os.environ.get('CHROME_BIN', '/usr/bin/chromium')
+        if os.path.exists(chrome_binary):
+            chrome_options.binary_location = chrome_binary
+
         driver = None
         try:
             logger.info("🌐 Starting browser...")
             print("🌐 Starting browser...")
 
-            driver = webdriver.Chrome(options=chrome_options)
+            # Use ChromeDriver path from environment if available
+            chromedriver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/bin/chromedriver')
+            if os.path.exists(chromedriver_path):
+                from selenium.webdriver.chrome.service import Service
+                service = Service(executable_path=chromedriver_path)
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+            else:
+                driver = webdriver.Chrome(options=chrome_options)
             driver.get(self.url)
 
             # Wait for page to load

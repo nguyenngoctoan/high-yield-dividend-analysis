@@ -96,3 +96,25 @@ Thumbs.db
 # Migration scripts with sensitive data
 scripts/run_migration_NOW.py
 scripts/run_migration_*.py
+
+# ETF discovery and temporary data files
+*.html
+*.json
+*_discovery.json
+*_discovery.txt
+*_complete.json
+*_structure.json
+GRANITESHARES_*.md
+GRANITESHARES_*.txt
+PURPOSE_ETF_*.json
+PURPOSE_ETF_*.txt
+PURPOSE_ETF_*.csv
+PURPOSE_ETF_SCRAPING_GUIDE.md
+
+# Prometheus monitoring (if not used)
+prometheus/
+
+# Temporary checklists and docs (use versioned docs instead)
+DEPLOYMENT_COMPLETE.md
+DOCKER_QUICKSTART.md
+PRODUCTION_CHECKLIST.md
